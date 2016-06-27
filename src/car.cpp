@@ -47,6 +47,7 @@ void car::listener(const std::vector<Byte>& data)
 			break;
 		case 's':
 			m_instance->targetCarSpeed = 0;
+			break;
 		default:
 		;
 	}
@@ -67,8 +68,8 @@ Button::Config car::getButtonConfig(const uint8_t id)
 	config.listener_trigger = Button::Config::Trigger::kUp;
 	config.listener =  [&](const uint8_t)
 	{
-//		accuLeftError = 0;
-//		accuRightError = 0;
+//		accuLCount = 0;
+//		accuRCount = 0;
 //		isKP = !isKP;
 //		allBlackConstant -=2;
 		ccdMaxReady += 1;
@@ -131,7 +132,7 @@ Joystick::Config car::getJoystickConfig()
 	config.listeners[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t)
 	{
 		if(targetCarSpeed==0){
-			targetCarSpeed = 1400;
+			targetCarSpeed = 1250;
 		}else{
 			targetCarSpeed = 0;
 		}
@@ -221,27 +222,36 @@ car::car()
 	servoTo(angleError);//need to change the default degree
 	lcd.Clear(0); // Clear the screen to black
 	//default setting
-//
+
+//	pGrapher.addWatchedVar(&accuRCount, "accuRCount");
+//	pGrapher.addWatchedVar(&accuLCount, "accuLCount");
 	pGrapher.addWatchedVar(&currentLeftSpeed, "currentLeftSpeed");
 	pGrapher.addWatchedVar(&currentRightSpeed, "currentRightSpeed");
 	pGrapher.addWatchedVar(&targetLeftSpeed, "targetLeftSpeed");
 	pGrapher.addWatchedVar(&targetRightSpeed, "targetRightSpeed");
 	pGrapher.addWatchedVar(&centreError[0], "centreError[0]");
+//	pGrapher.addWatchedVar(&max[1], "max[1]");
 //	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
 //	pGrapher.addWatchedVar(&leftCurrent, "leftCurrent");
 //	pGrapher.addWatchedVar(&rightCurrent, "rightCurrent");
 	pGrapher.addSharedVar(&targetCarSpeed, "targetCarSpeed");
-//	pGrapher.addSharedVar(&sKP_l, "sKP_l");
-//	pGrapher.addSharedVar(&sKI_l, "sKI_l");
-//	pGrapher.addSharedVar(&sKD_l, "sKD_l");
-//	pGrapher.addSharedVar(&sKP_r, "sKP_r");
-//	pGrapher.addSharedVar(&sKI_r, "sKI_r");
-//	pGrapher.addSharedVar(&sKD_r, "sKD_r");
-	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
-	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
-	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
-	pGrapher.addSharedVar(&maxServoAngleToLeft, "maxServoAngleToLeft");
-	pGrapher.addSharedVar(&maxServoAngleToRight, "maxServoAngleToRight");
+	pGrapher.addSharedVar(&sKP_l, "sKP_l");
+	pGrapher.addSharedVar(&sKI_l, "sKI_l");
+	pGrapher.addSharedVar(&sKD_l, "sKD_l");
+	pGrapher.addSharedVar(&sKP_r, "sKP_r");
+	pGrapher.addSharedVar(&sKI_r, "sKI_r");
+	pGrapher.addSharedVar(&sKD_r, "sKD_r");
+//	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
+//	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
+//	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
+//	pGrapher.addSharedVar(&maxServoAngleToLeft, "maxServoAngleToLeft");
+//	pGrapher.addSharedVar(&maxServoAngleToRight, "maxServoAngleToRight");
+//	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
+//	pGrapher.addSharedVar(&angleKD0Right, "angleKD0Right");
+//	pGrapher.addSharedVar(&straightLineSpeed, "straightLineSpeed");
+//	pGrapher.addSharedVar(&straightLineRegionOfCcd1, "straightLineRegionOfCcd1");
+//	pGrapher.addSharedVar(&angleKP1, "angleKP1");
+//	pGrapher.addSharedVar(&currentBrakingTime, "currentBrakingTime");
 	pGrapher.SetOnReceiveListener(&listener);
 }
 
@@ -254,19 +264,19 @@ void car::updateCcd()
 		ccd[i].StartSample();
 	}
 
-	if(ccdMaxHasBeenChanged==true){
-		ledSwitch(0);
-	}
-	if(ccdMinHasBeenChanged==true){
-		ledSwitch(1);
-	}
+	if(ccdMinHasBeenChanged==false){
+		if(ccdMaxHasBeenChanged==true){
+			ledSwitch(0);
+		}
+	}	//D1 first blinking indicates max recorded, D1 then not blinking indicates min recorded.
+
 	if(ccdMaxReady>0){
 		for(int i=0; i<128; i++)
 			ccd0Max[i] = ccdData.at(0).at(i);
 		for(int i=0; i<128; i++)
 			ccd1Max[i] = ccdData.at(1).at(i);
 		ccdMaxHasBeenChanged = true;
-		ccdMaxReady = 0;
+		ccdMaxReady = -100;
 	}
 	if(ccdMinReady>0){
 		for(int i=0; i<128; i++)
@@ -274,7 +284,8 @@ void car::updateCcd()
 		for(int i=0; i<128; i++)
 			ccd1Min[i] = ccdData.at(1).at(i);
 		ccdMinHasBeenChanged = true;
-		ccdMinReady = 0;
+		ccdMinReady = -100;
+		D1.SetEnable(1);
 	}
 	//update 2 ccd
 	if(ccd0Max!=NULL&&ccd0Min!=NULL&&ccd1Max!=NULL&&ccd1Min!=NULL){
@@ -319,8 +330,6 @@ void car::updateCcd()
 			}
 		}
 	}
-
-
 }
 
 void car::updateEncoder()
@@ -334,7 +343,7 @@ void car::updateEncoder()
 
 //		currentLeftSpeed = (int32_t)( - encoderL.GetCount() / 2 );
 
-		accuLCount += currentLeftSpeed;
+//		accuLCount += currentLeftSpeed;
 	}
 	if(abs(encoderR.GetCount())>20000){
 	}else{
@@ -343,7 +352,7 @@ void car::updateEncoder()
 
 //		currentRightSpeed = (int32_t)( encoderR.GetCount() );
 
-		accuRCount += currentRightSpeed;
+//		accuRCount += currentRightSpeed;
 	}
 
 	leftCurrent = 2045-lCurrent.GetResult();
@@ -575,12 +584,13 @@ void car::dirControl()
 //	switch(controlCase){
 //		case 0:
 			centreError[0] = ( centre[0] - trackCentre );
+			centreError[1] = centre[1] - trackCentre;
 			if(centreError[0]<0){
-				angleError = centreError[0] * angleKP0Left;
+				angleError = centreError[0] * angleKP0Left + ( centre[0] - preCentre[0] ) * angleKD0Left;
 			}else{
-				angleError = centreError[0] * angleKP0Right;
+				angleError = centreError[0] * angleKP0Right + ( centre[0] - preCentre[0] ) * angleKD0Right;
 			}
-
+//			changingSpeed();
 //			if(centreError<0){
 //				if(abs(centreError)<12){
 //					angleError = centreError * 6;
@@ -668,7 +678,6 @@ void car::dirControl()
 			wheelRatio = ( 0.0024 * ( angleError ) + 0.8344 );
 		}
 	}
-//	changingSpeed();
 }
 
 //void car::differential()
@@ -747,14 +756,51 @@ void car::dirControl()
 //}
 
 void car::changingSpeed(){
-	centreError[1] = centre[1] - trackCentre;
-	if(centreError[1]<straightLineRegion&&abs(angleError)<70){
+	if(abs(centreError[0])<straightLineRegionOfCcd0&&abs(centreError[1])<straightLineRegionOfCcd1){
+		if(ccdMinHasBeenChanged==true){
+			D1.SetEnable(0);
+			D2.SetEnable(0);
+		}//indicator
+
+		angleError = centreError[1] * angleKP1;
 		if(targetCarSpeed!=0){
-			targetCarSpeed = 1500;
+			targetCarSpeed = straightLineSpeed;
 		}
-	}else{
+	}else if(abs(centreError[0])<20&&abs(centreError[1])<21){
+		if(ccdMinHasBeenChanged==true){
+			D1.SetEnable(1);
+			D2.SetEnable(1);
+		}//indicator
+
 		if(targetCarSpeed!=0){
-			targetCarSpeed = 1190;
+//			if(brakingTime>0&&brakingTime<=currentBrakingTime){
+//				brakingTime++;
+//			}
+//			if(targetCarSpeed==straightLineSpeed){
+//				targetCarSpeed = 1100;
+//				brakingTime++;
+//			}else{
+				targetCarSpeed = 1300;
+				brakingTime = 0;
+			}
+//		}
+	}else{
+		if(ccdMinHasBeenChanged==true){
+			D1.SetEnable(1);
+			D2.SetEnable(1);
+		}//indicator
+
+		if(targetCarSpeed!=0){
+//			if(brakingTime>0&&brakingTime<=currentBrakingTime){
+//				brakingTime++;
+//			}
+//			if(targetCarSpeed==straightLineSpeed){
+//				targetCarSpeed = 1100;
+//				brakingTime++;
+//			}else{
+				targetCarSpeed = 1280;
+				brakingTime = 0;
+//			}
 		}
 	}
 }
@@ -772,39 +818,48 @@ void car::speedPID()
 		targetRightSpeed = ( int32_t ) ( targetCarSpeed * 2 / ( wheelRatio + 1) );
 	}
 
-//	if(preTargetLeftSpeed!=targetLeftSpeed){
-//		accuLeftError = 0;
-//	}
-//	if(preTargetRightSpeed!=targetRightSpeed){
-//		accuRightError = 0;
-//	}
-
-//	targetLeftSpeed = targetCarSpeed;
-//	targetRightSpeed = targetCarSpeed;
+	targetLeftSpeed = targetCarSpeed;
+	targetRightSpeed = targetCarSpeed;
 
 	lError = targetLeftSpeed - currentLeftSpeed;
 	accuLeftError = accuLeftError + lError;
-	if(lError<=350){
-		LPWM = (int16_t)( lError*sKP_l[0] + accuLeftError*sKI_l[0] );
-	}else if(lError<=700){
-		LPWM = (int16_t)( lError*sKP_l[1] + accuLeftError*sKI_l[1] );
-	}else{
-		LPWM = (int16_t)( lError*sKP_l[2] + accuLeftError*sKI_l[2] );
-	}
-//	LPWM = (int16_t)( lError*sKP_l + accuLeftError*sKI_l + (lError - preLeftError)*sKD_l);
+//	if(preTargetLeftSpeed==targetLeftSpeed){
+//		LPWM = (int16_t)( lError*sKP_l[previousIndex_l] + accuLeftError*sKI_l[previousIndex_l] );
+//	}else{
+//		if(lError<=350){
+//			LPWM = (int16_t)( lError*sKP_l[0] + accuLeftError*sKI_l[0] );
+//			previousIndex_l = 0;
+//		}else if(lError<=700){
+//			LPWM = (int16_t)( lError*sKP_l[1] + accuLeftError*sKI_l[1] );
+//			previousIndex_l = 1;
+//		}else{
+//			LPWM = (int16_t)( lError*sKP_l[2] + accuLeftError*sKI_l[2] );
+//			previousIndex_l = 2;
+//		}
+//	}
+	LPWM = (int16_t)( lError*sKP_l + accuLeftError*sKI_l + (lError - preLeftError)*sKD_l);
 	preLeftError = lError;
+	preTargetLeftSpeed = targetLeftSpeed;
 
 	rError = targetRightSpeed - currentRightSpeed;
 	accuRightError = accuRightError + rError;
-	if(lError<=350){
-		RPWM = (int16_t)( rError*sKP_r[0] + accuRightError*sKI_r[0] );
-	}else if(lError<=700){
-		RPWM = (int16_t)( rError*sKP_r[1] + accuRightError*sKI_r[1] );
-	}else{
-		RPWM = (int16_t)( rError*sKP_r[2] + accuRightError*sKI_r[2] );
-	}
-//	RPWM = (int16_t)( rError*sKP_r + accuRightError*sKI_r + (rError - preRightError)*sKD_r);
+//	if(	preTargetRightSpeed==targetRightSpeed){
+//		RPWM = (int16_t)( rError*sKP_r[previousIndex_r] + accuRightError*sKI_r[previousIndex_r] );
+//	}else{
+//		if(lError<=350){
+//			RPWM = (int16_t)( rError*sKP_r[0] + accuRightError*sKI_r[0] );
+//			previousIndex_r = 0;
+//		}else if(lError<=700){
+//			RPWM = (int16_t)( rError*sKP_r[1] + accuRightError*sKI_r[1] );
+//			previousIndex_r = 1;
+//		}else{
+//			RPWM = (int16_t)( rError*sKP_r[2] + accuRightError*sKI_r[2] );
+//			previousIndex_r = 2;
+//		}
+//	}
+	RPWM = (int16_t)( rError*sKP_r + accuRightError*sKI_r + (rError - preRightError)*sKD_r);
 	preRightError = rError;
+	preTargetRightSpeed = targetRightSpeed;
 	//PID
 
 //	preTargetLeftSpeed = targetLeftSpeed;

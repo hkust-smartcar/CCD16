@@ -78,7 +78,7 @@ private:
 	int32_t accuLCount = 0;
 	int32_t accuRCount = 0;
 	int16_t max[2];
-	uint8_t printCcd = 1;
+	uint8_t printCcd = 0;
 	int8_t centreError[2] = { NULL };
 	uint16_t allBlackConstant = 0;
 
@@ -92,13 +92,12 @@ private:
 	uint32_t iKD = 0;
 	int32_t lError = 0;
 	int32_t rError = 0;
-	int32_t preTargetLeftSpeed = 0;
-	int32_t preTargetRightSpeed = 0;
 	int32_t targetCarSpeed = 0;
 	int32_t targetLeftSpeed = 0;
 	int32_t targetRightSpeed = 0;
 	int32_t currentLeftSpeed = 0;
 	int32_t currentRightSpeed = 0;
+	const int32_t countsPerM = 28802;
 
 	int32_t preLeftError = 0;
 	int32_t preRightError = 0;
@@ -124,10 +123,24 @@ private:
 //	int16_t LPWM = 0;
 //	int16_t RPWM = 0;
 
-	float sKP_l[3] = { 3, 2, 0.8 };
-	float sKI_l[3] = { 0.1, 0.1, 0.02 };
-	float sKP_r[3] = { 3, 2, 0.8 };
-	float sKI_r[3] = { 0.1, 0.1, 0.02 };
+//	float sKP_l[3] = { 3, 2, 0.8 };
+//	float sKI_l[3] = { 0.05, 0.1, 0.02 };
+//	float sKP_r[3] = { 3, 2, 0.8 };
+//	float sKI_r[3] = { 0.05, 0.1, 0.02 };
+
+	uint8_t brakingTime = 3;
+	uint8_t currentBrakingTime = 1;
+	int32_t preTargetLeftSpeed = 0;
+	int32_t preTargetRightSpeed = 0;
+	uint8_t previousIndex_l = 0;
+	uint8_t previousIndex_r = 0;
+
+	float sKP_l = 2.32;
+	float sKI_l = 0.04;
+	float sKD_l = 0;
+	float sKP_r = 2.11;
+	float sKI_r = 0.045;
+	float sKD_r = 0;
 
 //	float sKP_l = 0.68;
 //	float sKI_l = 0.06;
@@ -143,12 +156,18 @@ private:
 	uint8_t preTurning = 50;
 	float errorIndex = 1.15;
 	int32_t angleError = 0;
-	float angleKP0Left = 7.5;
-	float angleKP0Right = 8;
-	int16_t maxServoAngleForSpeed = 280;
-	int16_t maxServoAngleToLeft = 269;
+	float angleKP0Left = 10;
+	float angleKP0Right = 10.8;
+	float angleKD0Left = 0;
+	float angleKD0Right = 0;
+	float angleKP1 = 3;
+
+	int16_t maxServoAngleForSpeed = 285;
+	int16_t maxServoAngleToLeft = 285;
 	int16_t maxServoAngleToRight = 285;
-	uint8_t straightLineRegion = 0;
+	uint8_t straightLineRegionOfCcd0 = 13;
+	uint8_t straightLineRegionOfCcd1 = 5;
+	int32_t straightLineSpeed = 2000;
 	uint8_t noOfSegment[2] = {0, 0};
 	int32_t centre[4] = {64, 64, 64, 64};
 	int32_t preCentre[4] = {64, 64, 64, 64};
