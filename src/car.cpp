@@ -30,6 +30,7 @@
 #include <libsc/lcd_console.h>
 #include "myDeque.h"
 #include "pVarManager.h"
+#include "angle_process.h"
 
 
 using namespace std;
@@ -129,10 +130,10 @@ Joystick::Config car::getJoystickConfig()
 	config.listener_triggers[2] = Joystick::Config::Trigger::kUp;
 	config.listener_triggers[3] = Joystick::Config::Trigger::kUp;
 	config.listener_triggers[4] = Joystick::Config::Trigger::kUp;
-	config.listeners[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t)
+	config.handlers[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t, const Joystick::State)
 	{
 		if(targetCarSpeed==0){
-			targetCarSpeed = 1250;
+			targetCarSpeed = 890;
 		}else{
 			targetCarSpeed = 0;
 		}
@@ -145,7 +146,7 @@ Joystick::Config car::getJoystickConfig()
 //		}
 //		offset += 1;
 	};
-	config.listeners[static_cast<int>(Joystick::State::kDown)] = [&](const uint8_t)
+	config.handlers[static_cast<int>(Joystick::State::kDown)] = [&](const uint8_t, const Joystick::State)
 	{
 //		allBlackConstant -= 2;
 //		servoTo(angleError -= 5);
@@ -156,15 +157,15 @@ Joystick::Config car::getJoystickConfig()
 //		}
 //		offset -= 1;
 	};
-	config.listeners[static_cast<int>(Joystick::State::kLeft)] = [&](const uint8_t)
+	config.handlers[static_cast<int>(Joystick::State::kLeft)] = [&](const uint8_t, const Joystick::State)
 	{
 //		errorIndex -=0.05;
 	};
-	config.listeners[static_cast<int>(Joystick::State::kRight)] = [&](const uint8_t)
+	config.handlers[static_cast<int>(Joystick::State::kRight)] = [&](const uint8_t, const Joystick::State)
 	{
 //		errorIndex +=0.05;
 	};
-	config.listeners[static_cast<int>(Joystick::State::kSelect)] = [&](const uint8_t)
+	config.handlers[static_cast<int>(Joystick::State::kSelect)] = [&](const uint8_t, const Joystick::State)
 	{
 		ccdMinReady += 1;
 	};
@@ -229,25 +230,29 @@ car::car()
 	pGrapher.addWatchedVar(&currentRightSpeed, "currentRightSpeed");
 	pGrapher.addWatchedVar(&targetLeftSpeed, "targetLeftSpeed");
 	pGrapher.addWatchedVar(&targetRightSpeed, "targetRightSpeed");
+//	pGrapher.addWatchedVar(&LPWM, "LPWM");
+//	pGrapher.addWatchedVar(&RPWM, "RPWM");
 	pGrapher.addWatchedVar(&centreError[0], "centreError[0]");
+//	pGrapher.addWatchedVar(&angleError, "angleError");
+
 //	pGrapher.addWatchedVar(&max[1], "max[1]");
-//	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
+	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
 //	pGrapher.addWatchedVar(&leftCurrent, "leftCurrent");
 //	pGrapher.addWatchedVar(&rightCurrent, "rightCurrent");
 	pGrapher.addSharedVar(&targetCarSpeed, "targetCarSpeed");
-	pGrapher.addSharedVar(&sKP_l, "sKP_l");
-	pGrapher.addSharedVar(&sKI_l, "sKI_l");
-	pGrapher.addSharedVar(&sKD_l, "sKD_l");
-	pGrapher.addSharedVar(&sKP_r, "sKP_r");
-	pGrapher.addSharedVar(&sKI_r, "sKI_r");
-	pGrapher.addSharedVar(&sKD_r, "sKD_r");
-//	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
-//	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
-//	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
-//	pGrapher.addSharedVar(&maxServoAngleToLeft, "maxServoAngleToLeft");
-//	pGrapher.addSharedVar(&maxServoAngleToRight, "maxServoAngleToRight");
-//	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
-//	pGrapher.addSharedVar(&angleKD0Right, "angleKD0Right");
+//	pGrapher.addSharedVar(&sKP_l, "sKP_l");
+//	pGrapher.addSharedVar(&sKI_l, "sKI_l");
+//	pGrapher.addSharedVar(&sKD_l, "sKD_l");
+//	pGrapher.addSharedVar(&sKP_r, "sKP_r");
+//	pGrapher.addSharedVar(&sKI_r, "sKI_r");
+//	pGrapher.addSharedVar(&sKD_r, "sKD_r");
+	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
+	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
+	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
+	pGrapher.addSharedVar(&maxServoAngleToLeft, "maxServoAngleToLeft");
+	pGrapher.addSharedVar(&maxServoAngleToRight, "maxServoAngleToRight");
+	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
+	pGrapher.addSharedVar(&angleKD0Right, "angleKD0Right");
 //	pGrapher.addSharedVar(&straightLineSpeed, "straightLineSpeed");
 //	pGrapher.addSharedVar(&straightLineRegionOfCcd1, "straightLineRegionOfCcd1");
 //	pGrapher.addSharedVar(&angleKP1, "angleKP1");
@@ -337,6 +342,7 @@ void car::updateEncoder()
 	encoderL.Update();
 	encoderR.Update();
 	if(abs(encoderL.GetCount())>20000){
+	}else if(-encoderL.GetCount()/2<0){
 	}else{
 		currentLeftSpeedSq.update((int32_t)( - encoderL.GetCount() / 2 ));
 		currentLeftSpeed = currentLeftSpeedSq.average();
@@ -346,6 +352,7 @@ void car::updateEncoder()
 //		accuLCount += currentLeftSpeed;
 	}
 	if(abs(encoderR.GetCount())>20000){
+	}else if(encoderR.GetCount()<0){
 	}else{
 		currentRightSpeedSq.update((int32_t)( encoderR.GetCount() ) );
 		currentRightSpeed = currentRightSpeedSq.average();
@@ -481,7 +488,7 @@ void car::servoTo(int16_t degree)
 	}else if(degree<-maxServoAngleToLeft){
 		angleError = -maxServoAngleToLeft;
 	}
-	servo.SetDegree(857 + angleError);
+	servo.SetDegree(884 - angleError);
 }
 
 void car::dirControl()
@@ -755,6 +762,124 @@ void car::dirControl()
 //	}
 //}
 
+void car::dirControl_1()
+{
+	int r0=112,r1=112,l0=16,l1=16;
+	for(ccdId=0; ccdId<2; ccdId++){
+		int16_t maxData = 0;
+		int16_t minData = 255;
+		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){//find max and min
+			if(ccdData.at(ccdId).at(j)>maxData){
+				maxData = ccdData.at(ccdId).at(j);
+			}
+			if(ccdData.at(ccdId).at(j)<minData){
+				minData = ccdData.at(ccdId).at(j);
+			}
+		}
+
+		max[ccdId] = maxData;
+
+		if(ccdId==0){
+			if(maxData<=allBlackConstant){//ccd0 seeing nothing, then refer back to previous centre and turn to the most
+				if(centre[0]>64){
+					centre[0] = 127;
+				}else{
+					centre[0] = 0;
+				}
+				continue;//keep update ccd1 or you can use break
+			}else if(minData>allBlackConstant){//ccd0 seeing all white
+				centre[0] = 64;
+				continue;
+			}
+		}else if(ccdId==1){//other ccd
+			if(maxData<allBlackConstant){// ccd1 being black
+				centre[1] = 0;// will not accelerate
+				break;
+			}else if(minData>allBlackConstant){
+				centre[1] = 0;// will not accelerate
+				break;
+			}
+		}
+
+		threshold[ccdId] = ( maxData + minData ) / 2;
+		//find threshold
+
+		bool prePixelIsHigh = false;
+		noOfSegment[ccdId] = 0;
+		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){
+			if(ccdData.at(ccdId).at(j)>=threshold[ccdId]){
+				if(prePixelIsHigh == false){//from black to white
+					noOfSegment[ccdId]++;
+				}
+				prePixelIsHigh = true;
+			}else{
+				prePixelIsHigh = false;
+			}
+		}
+		//find no. of white segment
+
+		prePixelIsHigh = false;//assume black first
+		uint16_t edge[noOfSegment[ccdId]][2];
+		uint8_t distance[noOfSegment[ccdId]];
+		uint16_t segmentCentre[noOfSegment[ccdId]];
+		uint8_t indexOfSegment = 0;//index of first segment
+		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){
+			if(ccdData.at(ccdId).at(j)>=threshold[ccdId]){
+				if(prePixelIsHigh == false){// from black to white edge
+					edge[indexOfSegment][0] = j;//starting edge
+				}
+				prePixelIsHigh = true;
+				if(j==(ccdLength[ccdId][1]-1)){//last pixel in each ccd
+					edge[indexOfSegment][1] = (ccdLength[ccdId][1]-1);
+				}
+			}else{
+				if(prePixelIsHigh == true){
+					edge[indexOfSegment][1] = --j;//ending edge which is the previous index
+					indexOfSegment++;//go to next segment
+				}
+				prePixelIsHigh = false;
+			}
+		}
+		for(int i=0; i<noOfSegment[ccdId]; i++){//centre of each segment
+			segmentCentre[i] = ( edge[i][0] + edge[i][1] ) / 2;
+		}
+		for(int i=0; i<noOfSegment[ccdId]; i++){//distance between centres and preCentre
+			distance[i] = abs((preCentre[ccdId]-segmentCentre[i]));
+		}
+		int minSegment = 0;
+		for(int i=0; i<noOfSegment[ccdId]; i++){//find the one that is the closest to 64
+			if(distance[i]<=distance[minSegment]){
+				minSegment = i;
+			}
+			if(ccdId==0){
+			l0=edge[minSegment][0];
+			r0=edge[minSegment][1];
+			}
+			else if(ccdId==1){
+				l1=edge[minSegment][0];
+				r1=edge[minSegment][1];
+
+			}
+		}
+
+
+		if(abs(preCentre[ccdId]-segmentCentre[minSegment])>(ccdLength[ccdId][1]-ccdLength[ccdId][0])*5/9){// missed the track and saw the other track
+			//***use the previous centre***
+		}else{
+			centre[ccdId] = segmentCentre[minSegment];
+		}
+	}
+	angleError=
+			data_process(l1, r1,
+						 l0, r0, 16,
+						112, 16, 112, PREANGLE,
+						-500, 500, 3, 9.6, 9.6,
+						3, 10.4, 10.4,
+						ccdData[0]);
+	servoTo(angleError);
+	PREANGLE = angleError;
+}
+
 void car::changingSpeed(){
 	if(abs(centreError[0])<straightLineRegionOfCcd0&&abs(centreError[1])<straightLineRegionOfCcd1){
 		if(ccdMinHasBeenChanged==true){
@@ -818,11 +943,14 @@ void car::speedPID()
 		targetRightSpeed = ( int32_t ) ( targetCarSpeed * 2 / ( wheelRatio + 1) );
 	}
 
-	targetLeftSpeed = targetCarSpeed;
-	targetRightSpeed = targetCarSpeed;
+//	targetLeftSpeed = targetCarSpeed;
+//	targetRightSpeed = targetCarSpeed;
 
 	lError = targetLeftSpeed - currentLeftSpeed;
-	accuLeftError = accuLeftError + lError;
+	if((accuLeftError+lError)>(1000/sKI_l)){
+	}else{
+		accuLeftError = accuLeftError + lError;
+	}
 //	if(preTargetLeftSpeed==targetLeftSpeed){
 //		LPWM = (int16_t)( lError*sKP_l[previousIndex_l] + accuLeftError*sKI_l[previousIndex_l] );
 //	}else{
@@ -842,7 +970,10 @@ void car::speedPID()
 	preTargetLeftSpeed = targetLeftSpeed;
 
 	rError = targetRightSpeed - currentRightSpeed;
-	accuRightError = accuRightError + rError;
+	if((accuRightError+rError)>(1000/sKI_r)){
+	}else{
+		accuRightError = accuRightError + rError;
+	}
 //	if(	preTargetRightSpeed==targetRightSpeed){
 //		RPWM = (int16_t)( rError*sKP_r[previousIndex_r] + accuRightError*sKI_r[previousIndex_r] );
 //	}else{
@@ -882,18 +1013,19 @@ void car::motorTo(bool id, int16_t PWM)
 	if(id==0){
 		if(PWM>0){
 			motorL.SetPower(PWM);
-			motorL.SetClockwise(true);
+			motorL.SetClockwise(false);
 		}else{
 			motorL.SetPower(-PWM);
-			motorL.SetClockwise(false);
+			motorL.SetClockwise(true);
 		}
 	}else{
 		if(PWM>0){
 			motorR.SetPower(PWM);
-			motorR.SetClockwise(false);
+			motorR.SetClockwise(true);
 		}else{
 			motorR.SetPower(-PWM);
-			motorR.SetClockwise(true);
+			motorR.SetClockwise(false);
 		}
 	}
+
 }

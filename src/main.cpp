@@ -52,22 +52,31 @@ int main(void)
 	System::Init();
 	car car;
 
-	uint32_t previousTime = System::TimeIn100Us();
+	bool twiceLoopCounter = false;
+	uint32_t previousTime = System::Time();
 	while (true){
-		if((System::TimeIn100Us()-previousTime)==100){
+		if((System::System::Time()-previousTime)==10){
+			previousTime = System::Time();
 //			car.printSpeed();
 //			car.eraceCcdData();
-			car.dirControl();
-			car.updateCcd();
 
-			while((System::TimeIn100Us()-previousTime)<150){};
+//			if(twiceLoopCounter==true){
+//				car.ledSwitch(0);
+//			}else{
+//				car.ledSwitch(1);
+//			}
+			car.updateCcd();
+			car.dirControl();
+
+			while((System::TimeIn100Us()-previousTime)<8){};
 
 			car.updateEncoder();
 			car.speedPID();
-//			car.print();
 
+//			car.print();
 //			car.printCcdData();
-			previousTime = System::TimeIn100Us();
+
+//			twiceLoopCounter = !twiceLoopCounter;
 			}
 		}
 	return 0;

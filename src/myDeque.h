@@ -24,7 +24,8 @@ public:
 	int32_t average();
 private:
 	deque<int32_t> data;
-	uint8_t number;
+	uint8_t number = 0;
+	uint8_t sumOfNumber = 0;
 };
 
 #endif /* SRC_MYDEQUE_H_ */

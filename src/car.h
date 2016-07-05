@@ -31,6 +31,7 @@
 #include <libsc/lcd_console.h>
 #include "myDeque.h"
 #include "pVarManager.h"
+#include "angle_process.h"
 
 using namespace std;
 using namespace libsc;
@@ -47,6 +48,7 @@ public:
 	void print();
 	void printAngle();
 	void dirControl();
+	void dirControl_1();
 	void speedPID();
 	void torquePI();
 //	void setMotorPower(int);// power from -1000 ~ 1000 and positive is pushing forward
@@ -135,11 +137,11 @@ private:
 	uint8_t previousIndex_l = 0;
 	uint8_t previousIndex_r = 0;
 
-	float sKP_l = 2.32;
-	float sKI_l = 0.04;
+	float sKP_l = 1.7;
+	float sKI_l = 0.02;
 	float sKD_l = 0;
-	float sKP_r = 2.11;
-	float sKI_r = 0.045;
+	float sKP_r = 1.6;
+	float sKI_r = 0.02;
 	float sKD_r = 0;
 
 //	float sKP_l = 0.68;
@@ -156,15 +158,16 @@ private:
 	uint8_t preTurning = 50;
 	float errorIndex = 1.15;
 	int32_t angleError = 0;
-	float angleKP0Left = 10;
-	float angleKP0Right = 10.8;
-	float angleKD0Left = 0;
-	float angleKD0Right = 0;
+	float angleKP0Left = 11;
+	float angleKP0Right = 10.3;
+	float angleKD0Left = 13;
+	float angleKD0Right = 16;
 	float angleKP1 = 3;
+	int16_t PREANGLE = 0;
 
-	int16_t maxServoAngleForSpeed = 285;
-	int16_t maxServoAngleToLeft = 285;
-	int16_t maxServoAngleToRight = 285;
+	int16_t maxServoAngleForSpeed = 270;
+	int16_t maxServoAngleToLeft = 265;//255 for the smallest circular track and the max error is 23, 24, 25
+	int16_t maxServoAngleToRight = 265;
 	uint8_t straightLineRegionOfCcd0 = 13;
 	uint8_t straightLineRegionOfCcd1 = 5;
 	int32_t straightLineSpeed = 2000;
