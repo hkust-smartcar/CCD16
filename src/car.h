@@ -172,10 +172,10 @@ private:
 	uint8_t preTurning = 50;
 	float errorIndex = 1.15;
 	int32_t angleError = 0;
-	float angleKP0Left = 10.8;
-	float angleKP0Right = 10.6;
-	float angleKD0Left = 20;
-	float angleKD0Right = 20;
+	float angleKP0Left = 11.2;
+	float angleKP0Right = 11.2;
+	float angleKD0Left = 24;
+	float angleKD0Right = 24;
 	float angleKP1 = 0;
 	float angleKD1 = 0;
 
@@ -203,9 +203,9 @@ private:
 	int afterObstacleCentreShift =0;
 	int16_t distanceAfterSeeingObstacle = 0;
 
-	int8_t maxErrorForChangingSpeed = 13;
+	int8_t maxErrorForChangingSpeed = 10;
 	const int16_t minSpeed = 830;
-	const int16_t straightLineSpeed = 1000;
+	int16_t straightLineSpeed = 950;
 	float a = ( 860 - 1150 ) / ( - ( maxErrorForChangingSpeed * maxErrorForChangingSpeed ) );
 
 	//variable

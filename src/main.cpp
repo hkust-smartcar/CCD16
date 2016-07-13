@@ -37,7 +37,7 @@ namespace libbase
 		{
 			Mcg::Config config;
 			config.external_oscillator_khz = 50000;
-			config.core_clock_khz = 180000;
+			config.core_clock_khz = 220000;
 			return config;
 		}
 

@@ -296,7 +296,7 @@ car::car()
 //	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
 //	pGrapher.addWatchedVar(&leftCurrent, "leftCurrent");
 //	pGrapher.addWatchedVar(&rightCurrent, "rightCurrent");
-	pGrapher.addSharedVar(&targetCarSpeed, "targetCarSpeed");
+//	pGrapher.addSharedVar(&targetCarSpeed, "targetCarSpeed");
 //	pGrapher.addSharedVar(&sKP_l, "sKP_l");
 //	pGrapher.addSharedVar(&sKI_l, "sKI_l");
 //	pGrapher.addSharedVar(&sKP_r, "sKP_r");
@@ -308,8 +308,8 @@ car::car()
 	pGrapher.addSharedVar(&angleKD1, "angleKD1");
 	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
 	pGrapher.addSharedVar(&angleKD0Right, "angleKD0Right");
-//	pGrapher.addSharedVar(&straightLineSpeed, "straightLineSpeed");
-//	pGrapher.addSharedVar(&straightLineRegionOfCcd1, "straightLineRegionOfCcd1");
+	pGrapher.addSharedVar(&maxErrorForChangingSpeed, "maxErrorForChangingSpeed");
+	pGrapher.addSharedVar(&straightLineSpeed, "straightLineSpeed");
 //	pGrapher.addSharedVar(&angleKP1, "angleKP1");
 //	pGrapher.addSharedVar(&currentBrakingTime, "currentBrakingTime");
 	pGrapher.SetOnReceiveListener(&listener);
@@ -1132,11 +1132,11 @@ void car::changingSpeed()
 	}
 	if(targetCarSpeed==0){
 	}else{
-		targetCarSpeed = - a * error * error + 1000;
-		if(targetCarSpeed>1000){
-			targetCarSpeed = 1000;
+		targetCarSpeed = - a * error * error + straightLineSpeed;
+		if(targetCarSpeed>straightLineSpeed){
+			targetCarSpeed = straightLineSpeed;
 		}
-		if(abs(centreError[0])>49){
+		if(abs(centreError[0])>maxErrorForChangingSpeed){
 			targetCarSpeed = 860;
 		}
 	}
