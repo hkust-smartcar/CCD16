@@ -37,7 +37,7 @@ namespace libbase
 		{
 			Mcg::Config config;
 			config.external_oscillator_khz = 50000;
-			config.core_clock_khz = 150000;
+			config.core_clock_khz = 180000;
 			return config;
 		}
 
@@ -52,10 +52,10 @@ int main(void)
 	System::Init();
 	car car;
 
-	bool twiceLoopCounter = false;
+//	bool twiceLoopCounter = false;
 	uint32_t previousTime = System::Time();
 	while (true){
-		if((System::System::Time()-previousTime)==10){
+		if((System::Time()-previousTime)==10){
 			previousTime = System::Time();
 //			car.printSpeed();
 //			car.eraceCcdData();
@@ -67,11 +67,10 @@ int main(void)
 //			}
 			car.updateCcd();
 			car.dirControl();
-
-			while((System::TimeIn100Us()-previousTime)<8){};
-
 			car.updateEncoder();
 			car.speedPID();
+//			car.ledSwitch(0);
+//			car.ledSwitch(1);
 
 //			car.print();
 //			car.printCcdData();
@@ -79,5 +78,5 @@ int main(void)
 //			twiceLoopCounter = !twiceLoopCounter;
 			}
 		}
-	return 0;
+//	return 0;
 }

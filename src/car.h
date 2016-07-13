@@ -43,6 +43,7 @@ public:
 	void updateCcd();
 	void updateEncoder();
 	void ledSwitch(const uint8_t id);
+	void ledOn(const uint8_t id);
 	void printCcdData();
 	void eraceCcdData();
 	void print();
@@ -51,6 +52,11 @@ public:
 	void dirControl_1();
 	void speedPID();
 	void torquePI();
+	void resetToNoObstacle();
+	void servoTo(int16_t degree); //Left=-546, M=0, Right=+546
+	void motorTo(bool id, int16_t PWM);
+	void differential();
+	void changingSpeed();
 //	void setMotorPower(int);// power from -1000 ~ 1000 and positive is pushing forward
 
 	static car *m_instance;
@@ -62,24 +68,34 @@ private:
 
 	//degree:36.2, 48.5, 58.9, 67.1
 	//length:508, 534, 584, 651
-	const int16_t ccdLength[4][2] = { {16, 113}, {16, 113}, {0, 128}, {0, 128} };
+	const int16_t ccdLength[3][2] = { {16, 113}, {16, 113}, {0, 128} };
 	int8_t ccdMaxReady = 0;
 	int8_t ccdMinReady = 0;
+	int8_t thirdCcdMaxReady = 0;
+	int8_t thirdCcdMinReady = 0;
 	const uint8_t ccd0MaxMax = 230;
-	bool ccdMaxHasBeenChanged = false;
 	bool ccdMinHasBeenChanged = false;
-	uint8_t ccd0Max[128] = { NULL };
-	uint8_t ccd0Min[128] = { NULL };
+	bool ccdMaxHasBeenChanged = false;
+	bool thirdCcdMinHasBeenChanged = false;
+	bool thirdCcdMaxHasBeenChanged = false;
+	bool ccdDataRecorded = false;
+	int8_t ccdDataCounter = 0;
+	int16_t ccd0Max[128] = { NULL };
+	int16_t ccd1Max[128] = { NULL };
+	int16_t ccd2Max[128] = { NULL };
+	int16_t ccd0Min[128] = { NULL };
+	int16_t ccd1Min[128] = { NULL };
+	int16_t ccd2Min[128] = { NULL };
+	uint8_t ccdMax[3][128] = { {NULL}, {NULL}, {NULL} };
+	uint8_t ccdMin[3][128] = { {NULL}, {NULL}, {NULL} };
 	const uint8_t ccd1MaxMax = 230;
-	uint8_t ccd1Max[128] = { NULL };
-	uint8_t ccd1Min[128] = { NULL };
 	array<array<uint16_t, 128>, 4> ccdData;
 	int8_t ccdId = 1;
 	int8_t previousCcdId = 0;
 
 	int32_t accuLCount = 0;
 	int32_t accuRCount = 0;
-	int16_t max[2];
+	int16_t max[3];
 	uint8_t printCcd = 0;
 	int8_t centreError[2] = { NULL };
 	uint16_t allBlackConstant = 0;
@@ -116,19 +132,17 @@ private:
 //	float sKI_r = 0.04;
 //	float sKD_r = 0;
 
-//	float sKP_l = 0.12;
+//	float sKP_l = 0.7;
 //	float sKI_l = 0.01;
-//	float sKD_l = 0.3;
-//	float sKP_r = 0.12;
+//	float sKP_r = 0.7;
 //	float sKI_r = 0.01;
-//	float sKD_r = 0.3;
 //	int16_t LPWM = 0;
 //	int16_t RPWM = 0;
 
-//	float sKP_l[3] = { 3, 2, 0.8 };
-//	float sKI_l[3] = { 0.05, 0.1, 0.02 };
-//	float sKP_r[3] = { 3, 2, 0.8 };
-//	float sKI_r[3] = { 0.05, 0.1, 0.02 };
+	float sKP_l[2] = { 1.7, 1.7 };
+	float sKI_l[2] = { 0.029, 0.02 };
+	float sKP_r[2] = { 1.7, 1.7 };
+	float sKI_r[2] = { 0.029, 0.02 }; //for 10ms
 
 	uint8_t brakingTime = 3;
 	uint8_t currentBrakingTime = 1;
@@ -137,12 +151,12 @@ private:
 	uint8_t previousIndex_l = 0;
 	uint8_t previousIndex_r = 0;
 
-	float sKP_l = 1.7;
-	float sKI_l = 0.02;
-	float sKD_l = 0;
-	float sKP_r = 1.6;
-	float sKI_r = 0.02;
-	float sKD_r = 0;
+//	float sKP_l = 1.7;
+//	float sKI_l = 0.02;
+//	float sKD_l = 0;
+//	float sKP_r = 1.7;
+//	float sKI_r = 0.02;
+//	float sKD_r = 0;
 
 //	float sKP_l = 0.68;
 //	float sKI_l = 0.06;
@@ -158,11 +172,12 @@ private:
 	uint8_t preTurning = 50;
 	float errorIndex = 1.15;
 	int32_t angleError = 0;
-	float angleKP0Left = 11;
-	float angleKP0Right = 10.3;
-	float angleKD0Left = 13;
-	float angleKD0Right = 16;
+	float angleKP0Left = 10.8;
+	float angleKP0Right = 10.6;
+	float angleKD0Left = 20;
+	float angleKD0Right = 20;
 	float angleKP1 = 3;
+
 	int16_t PREANGLE = 0;
 
 	int16_t maxServoAngleForSpeed = 270;
@@ -172,7 +187,7 @@ private:
 	uint8_t straightLineRegionOfCcd1 = 5;
 	int32_t straightLineSpeed = 2000;
 	uint8_t noOfSegment[2] = {0, 0};
-	int32_t centre[4] = {64, 64, 64, 64};
+	int32_t centre[3] = {64, 64, 64};
 	int32_t preCentre[4] = {64, 64, 64, 64};
 	int16_t threshold[4];
 	const int8_t trackCentre = (ccdLength[0][0]+ccdLength[0][1])/2;
@@ -183,31 +198,35 @@ private:
 //	int32_t encoderData[128] = {};
 //	int16_t errorData[128] = {};
 //	int32_t counter = 0;
+
+	bool obstacle = false;
+	bool afterObstacle = false;
+	bool obstacleLeft = true;
+	int afterObstacleCentreShift =0;
+	int16_t distanceAfterSeeingObstacle = 0;
 	//variable
 
 	Led D1;
 	Led D2;
-	Button sw;
-	AbEncoder encoderR;
+	Led D3;
+	Led D4;
+//	Button sw;
 	AbEncoder encoderL;
-	Adc lCurrent;
-	Adc rCurrent;
-	Tsl1401cl ccd[4];
+	AbEncoder encoderR;
+//	Adc lCurrent;
+//	Adc rCurrent;
+	Tsl1401cl ccd[3];
+	FutabaS3010 servo;
 	AlternateMotor motorL;
 	AlternateMotor motorR;
-	FutabaS3010 servo;
 	St7735r lcd;
-	Joystick joystick;
+	Joystick joystick[2];
 	LcdConsole console;
 	pVarManager pGrapher;
 //	libsc::k60::JyMcuBt106 bluetooth;
 	Button::Config getButtonConfig(const uint8_t id);
 	LcdConsole::Config getLcdConsoleConfig();
-	Joystick::Config getJoystickConfig();
-	void servoTo(int16_t degree); //Left=-546, M=0, Right=+546
-	void motorTo(bool id, int16_t PWM);
-	void differential();
-	void changingSpeed();
+	Joystick::Config getJoystickConfig(const uint8_t id);
 //	void differentialNEW();
 //	void setMotorPower();
 

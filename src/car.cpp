@@ -74,6 +74,7 @@ Button::Config car::getButtonConfig(const uint8_t id)
 //		isKP = !isKP;
 //		allBlackConstant -=2;
 		ccdMaxReady += 1;
+		resetToNoObstacle();
 //		printCcd = !printCcd;
 //		lcd.Clear();
 
@@ -120,55 +121,105 @@ St7735r::Config getSt7735rConfig()
 	return config;
 }
 
-Joystick::Config car::getJoystickConfig()
+Joystick::Config car::getJoystickConfig(const uint8_t id)
 {
 	Joystick::Config config;
-	config.id = 0;
+	config.id = id;
 	config.is_active_low = true;
-	config.listener_triggers[0] = Joystick::Config::Trigger::kUp;
-	config.listener_triggers[1] = Joystick::Config::Trigger::kUp;
-	config.listener_triggers[2] = Joystick::Config::Trigger::kUp;
-	config.listener_triggers[3] = Joystick::Config::Trigger::kUp;
-	config.listener_triggers[4] = Joystick::Config::Trigger::kUp;
-	config.handlers[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t, const Joystick::State)
-	{
-		if(targetCarSpeed==0){
-			targetCarSpeed = 890;
-		}else{
-			targetCarSpeed = 0;
-		}
-//		allBlackConstant += 2;
-//		servoTo(angleError += 5);
-//		if(isKP == true){
-//			angleKP0 += 0.2;
-//		}else{
-//			angleKD1 += 0.2;
-//		}
-//		offset += 1;
-	};
-	config.handlers[static_cast<int>(Joystick::State::kDown)] = [&](const uint8_t, const Joystick::State)
-	{
-//		allBlackConstant -= 2;
-//		servoTo(angleError -= 5);
-//		if(isKP == true){
-//			angleKP0 -= 0.2;
-//		}else{
-//			angleKD1 -= 0.2;
-//		}
-//		offset -= 1;
-	};
-	config.handlers[static_cast<int>(Joystick::State::kLeft)] = [&](const uint8_t, const Joystick::State)
-	{
-//		errorIndex -=0.05;
-	};
-	config.handlers[static_cast<int>(Joystick::State::kRight)] = [&](const uint8_t, const Joystick::State)
-	{
-//		errorIndex +=0.05;
-	};
-	config.handlers[static_cast<int>(Joystick::State::kSelect)] = [&](const uint8_t, const Joystick::State)
-	{
-		ccdMinReady += 1;
-	};
+	config.listener_triggers[0] = Joystick::Config::Trigger::kBoth;
+	config.listener_triggers[1] = Joystick::Config::Trigger::kBoth;
+	config.listener_triggers[2] = Joystick::Config::Trigger::kBoth;
+	config.listener_triggers[3] = Joystick::Config::Trigger::kBoth;
+	config.listener_triggers[4] = Joystick::Config::Trigger::kBoth;
+	if(id==0){
+		config.handlers[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t, const Joystick::State)
+		{
+			if(ccdMaxReady!=-100){
+				ccdMaxReady += 1;
+			}
+//			if(targetCarSpeed==0){
+//				targetCarSpeed = 890;
+//			}else{
+//				targetCarSpeed = 0;
+//			}
+	//		allBlackConstant += 2;
+	//		servoTo(angleError += 5);
+	//		if(isKP == true){
+	//			angleKP0 += 0.2;
+	//		}else{
+	//			angleKD1 += 0.2;
+	//		}
+	//		offset += 1;
+		};
+		config.handlers[static_cast<int>(Joystick::State::kDown)] = [&](const uint8_t, const Joystick::State)
+		{
+			if(thirdCcdMaxReady!=100){
+			thirdCcdMaxReady += 1;
+			}
+	//		allBlackConstant -= 2;
+	//		servoTo(angleError -= 5);
+	//		if(isKP == true){
+	//			angleKP0 -= 0.2;
+	//		}else{
+	//			angleKD1 -= 0.2;
+	//		}
+	//		offset -= 1;
+		};
+		config.handlers[static_cast<int>(Joystick::State::kLeft)] = [&](const uint8_t, const Joystick::State)
+		{
+	//		errorIndex -=0.05;
+		};
+		config.handlers[static_cast<int>(Joystick::State::kRight)] = [&](const uint8_t, const Joystick::State)
+		{
+	//		errorIndex +=0.05;
+		};
+		config.handlers[static_cast<int>(Joystick::State::kSelect)] = [&](const uint8_t, const Joystick::State)
+		{
+			resetToNoObstacle();
+		};
+	}else{
+		config.handlers[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t, const Joystick::State)
+		{
+//			if(ccdDataCounter==0){
+//				ccdDataCounter = 1;
+//			}else if(ccdDataCounter==2){
+//				ccdDataCounter = 3;
+//			}else if(ccdDataCounter==4){
+//				ccdDataCounter = 5;
+//			}else if(ccdDataCounter==6){
+//				ccdDataCounter = 7;
+//			}
+//
+//			ccdDataRecorded = false;
+			if(ccdMinReady!=-100){
+				ccdMinReady += 1;
+			}
+		};
+		config.handlers[static_cast<int>(Joystick::State::kDown)] = [&](const uint8_t, const Joystick::State)
+		{
+			if(thirdCcdMinReady!=100){
+				thirdCcdMinReady += 1;
+			}
+//			if(ccdDataCounter==1){
+//				ccdDataCounter = 2;
+//			}else if(ccdDataCounter==3){
+//				ccdDataCounter = 4;
+//			}else if(ccdDataCounter==5){
+//				ccdDataCounter = 6;
+//			}
+//
+//			ccdDataRecorded = false;
+		};
+		config.handlers[static_cast<int>(Joystick::State::kLeft)] = [&](const uint8_t, const Joystick::State)
+		{
+		};
+		config.handlers[static_cast<int>(Joystick::State::kRight)] = [&](const uint8_t, const Joystick::State)
+		{
+		};
+		config.handlers[static_cast<int>(Joystick::State::kSelect)] = [&](const uint8_t, const Joystick::State)
+		{
+		};
+	}
 	return config;
 }
 
@@ -196,17 +247,19 @@ car::car()
 	currentRightSpeedSq(4),
 	D1(getLedConfig(0)),
 	D2(getLedConfig(1)),
-	sw(getButtonConfig(0)),
-	encoderR(getAbEncoderConfig(0)),
-	encoderL(getAbEncoderConfig(1)),
-	lCurrent(getAdcConfig(Pin::Name::kPtb10)),
-	rCurrent(getAdcConfig(Pin::Name::kPtb11)),
-	ccd{Tsl1401cl(0), Tsl1401cl(1), Tsl1401cl(2), Tsl1401cl(3)},
+	D3(getLedConfig(2)),
+	D4(getLedConfig(3)),
+//	sw(getButtonConfig(0)),
+	encoderL(getAbEncoderConfig(0)),
+	encoderR(getAbEncoderConfig(1)),
+//	lCurrent(getAdcConfig(Pin::Name::kPtb10)),
+//	rCurrent(getAdcConfig(Pin::Name::kPtb11)),
+	ccd{Tsl1401cl(0), Tsl1401cl(1), Tsl1401cl(2)},
+	servo(getFutabaS3010Config(0)),
 	motorL(getAlternateMotorConfig(0)),
 	motorR(getAlternateMotorConfig(1)),
-	servo(getFutabaS3010Config(0)),
 	lcd(getSt7735rConfig()),
-	joystick(getJoystickConfig()),
+	joystick{Joystick(getJoystickConfig(0)),Joystick(getJoystickConfig(1))},
 	console(getLcdConsoleConfig())
 //	,bluetooth(getJyMcuBt106Config(0))
 {
@@ -214,8 +267,10 @@ car::car()
 //		assert(false);
 	m_instance = this;
 
-	D1.SetEnable(true);
-	D2.SetEnable(true);
+	D1.SetEnable(1);
+	D2.SetEnable(1);
+	D3.SetEnable(1);
+	D4.SetEnable(1);
 	motorL.SetPower(LPWM);
 	motorL.SetClockwise(false);
 	motorR.SetPower(RPWM);
@@ -232,23 +287,23 @@ car::car()
 	pGrapher.addWatchedVar(&targetRightSpeed, "targetRightSpeed");
 //	pGrapher.addWatchedVar(&LPWM, "LPWM");
 //	pGrapher.addWatchedVar(&RPWM, "RPWM");
-	pGrapher.addWatchedVar(&centreError[0], "centreError[0]");
+//	pGrapher.addWatchedVar(&centreError[0], "centreError[0]");
+	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
+//	pGrapher.addWatchedVar(&max[1], "max[1]");
 //	pGrapher.addWatchedVar(&angleError, "angleError");
 
 //	pGrapher.addWatchedVar(&max[1], "max[1]");
-	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
+//	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
 //	pGrapher.addWatchedVar(&leftCurrent, "leftCurrent");
 //	pGrapher.addWatchedVar(&rightCurrent, "rightCurrent");
 	pGrapher.addSharedVar(&targetCarSpeed, "targetCarSpeed");
 //	pGrapher.addSharedVar(&sKP_l, "sKP_l");
 //	pGrapher.addSharedVar(&sKI_l, "sKI_l");
-//	pGrapher.addSharedVar(&sKD_l, "sKD_l");
 //	pGrapher.addSharedVar(&sKP_r, "sKP_r");
 //	pGrapher.addSharedVar(&sKI_r, "sKI_r");
-//	pGrapher.addSharedVar(&sKD_r, "sKD_r");
 	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
 	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
-	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
+//	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
 	pGrapher.addSharedVar(&maxServoAngleToLeft, "maxServoAngleToLeft");
 	pGrapher.addSharedVar(&maxServoAngleToRight, "maxServoAngleToRight");
 	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
@@ -263,17 +318,101 @@ car::car()
 void car::updateCcd()
 {
 
-	for(int i=0; i<2; i++){
+	for(int i=0; i<3; i++){
 		while(!ccd[i].SampleProcess()){}
 		ccdData.at(i) = ccd[i].GetData();
 		ccd[i].StartSample();
 	}
 
+//	if(!ccdDataRecorded){
+//		if(ccdDataCounter==1){
+//			D4.SetEnable(0);
+//		}else if(ccdDataCounter==2){
+//			D3.SetEnable(0);
+//		}else if(ccdDataCounter==3){
+//			D3.SetEnable(0);
+//			D4.SetEnable(0);
+//		}else if(ccdDataCounter==4){
+//			D2.SetEnable(0);
+//		}else if(ccdDataCounter==5){
+//			D2.SetEnable(0);
+//			D4.SetEnable(0);
+//		}else if(ccdDataCounter==6){
+//			D2.SetEnable(0);
+//			D3.SetEnable(0);
+//		}
+//		if(!((ccdDataCounter-1)/3)){
+//			for(int i=0; i<128; i++)
+//				ccdMax[(ccdDataCounter-1)%3][i] = ccdData.at(ccdDataCounter).at(i);
+//		}else{
+//			for(int i=0; i<128; i++)
+//				ccdMin[(ccdDataCounter-1)%3][i] = ccdData.at(ccdDataCounter).at(i);
+//		}
+//		ccdDataRecorded = true;
+//
+//	}else if(ccdDataCounter==7){
+//		if(obstacle){
+//			D1.SetEnable(0);
+//		}else{
+//			D1.SetEnable(1);
+//		}
+//		if(afterObstacle){
+//			D2.SetEnable(0);
+//		}else{
+//			D2.SetEnable(1);
+//		}
+//	}
+//	//D1 first blinking indicates max recorded, D1 then not blinking indicates min recorded.
+//
+//	if(ccdMax[0]!=NULL&&ccdMax[1]!=NULL&&ccdMin[0]!=NULL&&ccdMin[1]!=NULL){
+//
+//		if(allBlackConstant==0){
+//			allBlackConstant = 230 / 4;
+//		}
+//
+//		for(int j=0; j<3; j++){
+//
+//			int16_t data[128] = { NULL };
+//
+//			for(int i=0; i<128; i++){
+//				if(ccdData.at(j).at(i)<ccdMin[j][i]){
+//					data[i] = 0;
+//				}else if(ccdData.at(j).at(i)>ccdMax[j][i]){
+//					data[i] = 230;
+//				}else{
+//					data[i] = ( ccdData.at(j).at(i) - ccdMin[j][i] ) * ( ccd0MaxMax ) / ( ccdMax[j][i] - ccdMin[j][i] );
+//				}
+//			}
+//
+//			for(int i=0; i<128; i++){
+//				if(i!=127){
+//					ccdData.at(j).at(i) = ( data[i] + data[i+1] ) / 2;
+//				}
+//			}
+//		}
+//	}
+
 	if(ccdMinHasBeenChanged==false){
 		if(ccdMaxHasBeenChanged==true){
-			ledSwitch(0);
+			D1.SetEnable(0);
 		}
-	}	//D1 first blinking indicates max recorded, D1 then not blinking indicates min recorded.
+	}else if(thirdCcdMinHasBeenChanged==false){
+		if(thirdCcdMaxHasBeenChanged==true){
+			D2.SetEnable(0);
+		}
+	}else{
+		if(obstacle){
+			D1.SetEnable(0);
+		}else{
+			D1.SetEnable(1);
+		}
+		if(afterObstacle){
+			D2.SetEnable(0);
+		}else{
+			D2.SetEnable(1);
+		}
+	}
+		//D1 first blinking indicates max recorded, D1 then not blinking indicates min recorded.
 
 	if(ccdMaxReady>0){
 		for(int i=0; i<128; i++)
@@ -292,10 +431,23 @@ void car::updateCcd()
 		ccdMinReady = -100;
 		D1.SetEnable(1);
 	}
-	//update 2 ccd
+	if(thirdCcdMaxReady>0){
+		for(int i=0; i<128; i++)
+			ccd2Max[i] = ccdData.at(2).at(i);
+		thirdCcdMaxHasBeenChanged = true;
+		thirdCcdMaxReady = -100;
+	}
+	if(thirdCcdMinReady>0){
+		for(int i=0; i<128; i++)
+			ccd2Min[i] = ccdData.at(2).at(i);
+		thirdCcdMinHasBeenChanged = true;
+		thirdCcdMinReady = -100;
+		D2.SetEnable(1);
+	}
+	//update 3 ccd
 	if(ccd0Max!=NULL&&ccd0Min!=NULL&&ccd1Max!=NULL&&ccd1Min!=NULL){
 		if(allBlackConstant==0){
-			allBlackConstant = 230 /4;
+			allBlackConstant = 230 / 4;
 		}
 		uint16_t data[128] = { NULL };
 		for(int i=0; i<128; i++){
@@ -305,9 +457,6 @@ void car::updateCcd()
 				data[i] = 230;
 			}else{
 				data[i] = ( ccdData.at(0).at(i) - ccd0Min[i] ) * ( ccd0MaxMax ) / ( ccd0Max[i] - ccd0Min[i] );
-			}
-			if(data[i]>230){
-				data[i] = 230;
 			}
 		}
 		for(int i=0; i<128; i++){
@@ -325,16 +474,14 @@ void car::updateCcd()
 			}else{
 				data[i] = ( ccdData.at(1).at(i) - ccd1Min[i] ) * ( ccd1MaxMax ) / ( ccd1Max[i] - ccd1Min[i] );
 			}
-			if(data[i]>230){
-				data[i] = 230;
-			}
 		}
 		for(int i=0; i<128; i++){
 			if(i!=0||i!=127){
-				ccdData.at(1).at(i) = ( data[i+1] + data[i] + data[i-1] ) / 3;
+				ccdData.at(1).at(i) = ( data[i+1] + data[i] + data[i-1]) / 3;
 			}
 		}
 	}
+
 }
 
 void car::updateEncoder()
@@ -342,19 +489,23 @@ void car::updateEncoder()
 	encoderL.Update();
 	encoderR.Update();
 	if(abs(encoderL.GetCount())>20000){
-	}else if(-encoderL.GetCount()/2<0){
-	}else{
+	}
+//	else if(abs(currentLeftSpeed-(-encoderL.GetCount()))>900){
+//	}
+	else{
 		currentLeftSpeedSq.update((int32_t)( - encoderL.GetCount() / 2 ));
 		currentLeftSpeed = currentLeftSpeedSq.average();
 
-//		currentLeftSpeed = (int32_t)( - encoderL.GetCount() / 2 );
+//		currentLeftSpeed = (int32_t)( - encoderL.GetCount() );
 
 //		accuLCount += currentLeftSpeed;
 	}
 	if(abs(encoderR.GetCount())>20000){
-	}else if(encoderR.GetCount()<0){
-	}else{
-		currentRightSpeedSq.update((int32_t)( encoderR.GetCount() ) );
+	}
+//	else if(abs(currentRightSpeed-(encoderR.GetCount()))>900){
+//	}
+	else{
+		currentRightSpeedSq.update((int32_t)( encoderR.GetCount() / 2 ) );
 		currentRightSpeed = currentRightSpeedSq.average();
 
 //		currentRightSpeed = (int32_t)( encoderR.GetCount() );
@@ -362,9 +513,13 @@ void car::updateEncoder()
 //		accuRCount += currentRightSpeed;
 	}
 
-	leftCurrent = 2045-lCurrent.GetResult();
-	rightCurrent = rCurrent.GetResult() - 2045;
+//	leftCurrent = 2045-lCurrent.GetResult();
+//	rightCurrent = rCurrent.GetResult() - 2045;
 	//enconder update
+
+	if(afterObstacle){
+		distanceAfterSeeingObstacle += ( currentRightSpeed+currentLeftSpeed ) / 2;
+	}
 
 	pGrapher.sendWatchData();
 }
@@ -378,6 +533,32 @@ void car::ledSwitch(const uint8_t id)
 
 		case 1:
 			D2.Switch(); break;
+
+		case 2:
+			D3.Switch(); break;
+
+		case 3:
+			D4.Switch(); break;
+		default:
+			;
+		}
+}
+
+void car::ledOn(const uint8_t id)
+{
+	switch (id)
+		{
+		case 0:
+			D1.SetEnable(0); break;
+
+		case 1:
+			D2.SetEnable(0); break;
+
+		case 2:
+			D3.SetEnable(0); break;
+
+		case 3:
+			D4.SetEnable(0); break;
 		default:
 			;
 		}
@@ -491,9 +672,15 @@ void car::servoTo(int16_t degree)
 	servo.SetDegree(884 - angleError);
 }
 
+void car::resetToNoObstacle(){
+	obstacle = false;
+	afterObstacle = false;
+	distanceAfterSeeingObstacle = 0;
+}
+
 void car::dirControl()
 {
-	for(ccdId=0; ccdId<2; ccdId++){
+	for(ccdId=0; ccdId<3; ccdId++){
 		int16_t maxData = 0;
 		int16_t minData = 255;
 		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){//find max and min
@@ -548,6 +735,8 @@ void car::dirControl()
 
 		prePixelIsHigh = false;//assume black first
 		uint16_t edge[noOfSegment[ccdId]][2];
+		uint8_t centreOfSegment[noOfSegment[ccdId]];
+		uint16_t distance[noOfSegment[ccdId]];
 		uint8_t indexOfSegment = 0;//index of first segment
 		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){
 			if(ccdData.at(ccdId).at(j)>=threshold[ccdId]){
@@ -566,15 +755,16 @@ void car::dirControl()
 				prePixelIsHigh = false;
 			}
 		}
+
 		for(int i=0; i<noOfSegment[ccdId]; i++){//centre of each segment
-			edge[i][0] = ( edge[i][0] + edge[i][1] ) / 2;
+			centreOfSegment[i] = ( edge[i][0] + edge[i][1] ) / 2;
 		}
 		for(int i=0; i<noOfSegment[ccdId]; i++){//distance between centres and preCentre
-			edge[i][1] = abs((preCentre[ccdId]-edge[i][0]));
+			distance[i] = abs((preCentre[ccdId]-centreOfSegment[i]));
 		}
 		int minSegment = 0;
 		for(int i=0; i<noOfSegment[ccdId]; i++){//find the one that is the closest to 64
-			if(edge[i][1]<=edge[minSegment][1]){
+			if(distance[i]<=distance[minSegment]){
 				minSegment = i;
 			}
 		}
@@ -583,9 +773,54 @@ void car::dirControl()
 		if(abs(preCentre[ccdId]-edge[minSegment][0])>(ccdLength[ccdId][1]-ccdLength[ccdId][0])*5/9){// missed the track and saw the other track
 			//***use the previous centre***
 		}else{
-			centre[ccdId] = edge[minSegment][0];
+			centre[ccdId] = centreOfSegment[minSegment];
 		}
+
+		if(ccdId==0){
+			if(noOfSegment[0]>1){
+				for(int i=0;i<noOfSegment[0]-1;i++){
+					if((edge[i+1][0]-edge[i][1])>8 && (edge[i+1][0]-edge[i][1])<15){
+						obstacle=true;
+						if((edge[i][1]-edge[i][0])>(edge[i+1][1]-edge[i+1][0])){
+							obstacleLeft=false;
+							afterObstacleCentreShift=(edge[i][1]-edge[i][0])/2;
+							minSegment=i;
+						}else{
+							obstacleLeft=true;
+							afterObstacleCentreShift=(edge[i+1][1]-edge[i+1][0])/2;
+							minSegment=i+1;
+						}
+					}else{
+						if(obstacle){
+							obstacle=false;
+							afterObstacle=true;
+						}
+					}
+				}
+			}else{
+				if(obstacle){
+					obstacle=false;
+					afterObstacle=true;
+				}
+			}
+			if(afterObstacle){
+				if(distanceAfterSeeingObstacle > countsPerM*0.3){
+					afterObstacle=false;
+					distanceAfterSeeingObstacle=0;
+				}
+			}
+			if(afterObstacle){
+				if(obstacleLeft){
+					centre[0] = edge[minSegment][1] - afterObstacleCentreShift;
+				}else{
+					centre[0] = edge[minSegment][0] + afterObstacleCentreShift;
+				}
+			}
+		}
+
+
 	}
+
 
 
 //	switch(controlCase){
@@ -593,9 +828,17 @@ void car::dirControl()
 			centreError[0] = ( centre[0] - trackCentre );
 			centreError[1] = centre[1] - trackCentre;
 			if(centreError[0]<0){
-				angleError = centreError[0] * angleKP0Left + ( centre[0] - preCentre[0] ) * angleKD0Left;
+//				if((centre[0]-preCentre[0])>0){
+//					angleError = centreError[0] * angleKP0Left;
+//				}else{
+					angleError = centreError[0] * angleKP0Left + ( centre[0] - preCentre[0] ) * angleKD0Left;
+//				}
 			}else{
-				angleError = centreError[0] * angleKP0Right + ( centre[0] - preCentre[0] ) * angleKD0Right;
+//				if((centre[0]-preCentre[0])<0){
+//					angleError = centreError[0] * angleKP0Left;
+//				}else{
+					angleError = centreError[0] * angleKP0Right + ( centre[0] - preCentre[0] ) * angleKD0Right;
+//				}
 			}
 //			changingSpeed();
 //			if(centreError<0){
@@ -880,54 +1123,9 @@ void car::dirControl_1()
 	PREANGLE = angleError;
 }
 
-void car::changingSpeed(){
-	if(abs(centreError[0])<straightLineRegionOfCcd0&&abs(centreError[1])<straightLineRegionOfCcd1){
-		if(ccdMinHasBeenChanged==true){
-			D1.SetEnable(0);
-			D2.SetEnable(0);
-		}//indicator
+void car::changingSpeed()
+{
 
-		angleError = centreError[1] * angleKP1;
-		if(targetCarSpeed!=0){
-			targetCarSpeed = straightLineSpeed;
-		}
-	}else if(abs(centreError[0])<20&&abs(centreError[1])<21){
-		if(ccdMinHasBeenChanged==true){
-			D1.SetEnable(1);
-			D2.SetEnable(1);
-		}//indicator
-
-		if(targetCarSpeed!=0){
-//			if(brakingTime>0&&brakingTime<=currentBrakingTime){
-//				brakingTime++;
-//			}
-//			if(targetCarSpeed==straightLineSpeed){
-//				targetCarSpeed = 1100;
-//				brakingTime++;
-//			}else{
-				targetCarSpeed = 1300;
-				brakingTime = 0;
-			}
-//		}
-	}else{
-		if(ccdMinHasBeenChanged==true){
-			D1.SetEnable(1);
-			D2.SetEnable(1);
-		}//indicator
-
-		if(targetCarSpeed!=0){
-//			if(brakingTime>0&&brakingTime<=currentBrakingTime){
-//				brakingTime++;
-//			}
-//			if(targetCarSpeed==straightLineSpeed){
-//				targetCarSpeed = 1100;
-//				brakingTime++;
-//			}else{
-				targetCarSpeed = 1280;
-				brakingTime = 0;
-//			}
-		}
-	}
 }
 
 void car::speedPID()
@@ -947,54 +1145,58 @@ void car::speedPID()
 //	targetRightSpeed = targetCarSpeed;
 
 	lError = targetLeftSpeed - currentLeftSpeed;
-	if((accuLeftError+lError)>(1000/sKI_l)){
-	}else{
-		accuLeftError = accuLeftError + lError;
-	}
-//	if(preTargetLeftSpeed==targetLeftSpeed){
-//		LPWM = (int16_t)( lError*sKP_l[previousIndex_l] + accuLeftError*sKI_l[previousIndex_l] );
+
+//	if((accuLeftError+lError)>(1000/sKI_l)){
 //	}else{
-//		if(lError<=350){
-//			LPWM = (int16_t)( lError*sKP_l[0] + accuLeftError*sKI_l[0] );
-//			previousIndex_l = 0;
-//		}else if(lError<=700){
-//			LPWM = (int16_t)( lError*sKP_l[1] + accuLeftError*sKI_l[1] );
-//			previousIndex_l = 1;
-//		}else{
-//			LPWM = (int16_t)( lError*sKP_l[2] + accuLeftError*sKI_l[2] );
-//			previousIndex_l = 2;
-//		}
+//		accuLeftError = accuLeftError + lError;
 //	}
-	LPWM = (int16_t)( lError*sKP_l + accuLeftError*sKI_l + (lError - preLeftError)*sKD_l);
+
+	if(lError<=200){
+		if((accuLeftError+lError)>(1000/sKI_l[0])){
+		}else{
+			accuLeftError = accuLeftError + lError;
+		}
+		LPWM = (int16_t)( lError*sKP_l[0] + accuLeftError*sKI_l[0] );
+	}else{
+		if((accuLeftError+lError)>(1000/sKI_l[1])){
+		}else{
+			accuLeftError = accuLeftError + lError;
+		}
+		LPWM = (int16_t)( lError*sKP_l[1] + accuLeftError*sKI_l[1] );
+	}
+
+//	LPWM = (int16_t)( lError*sKP_l + accuLeftError*sKI_l );
 	preLeftError = lError;
 	preTargetLeftSpeed = targetLeftSpeed;
 
 	rError = targetRightSpeed - currentRightSpeed;
-	if((accuRightError+rError)>(1000/sKI_r)){
-	}else{
-		accuRightError = accuRightError + rError;
-	}
-//	if(	preTargetRightSpeed==targetRightSpeed){
-//		RPWM = (int16_t)( rError*sKP_r[previousIndex_r] + accuRightError*sKI_r[previousIndex_r] );
+
+//	if((accuRightError+rError)>(1000/sKI_r)){
 //	}else{
-//		if(lError<=350){
-//			RPWM = (int16_t)( rError*sKP_r[0] + accuRightError*sKI_r[0] );
-//			previousIndex_r = 0;
-//		}else if(lError<=700){
-//			RPWM = (int16_t)( rError*sKP_r[1] + accuRightError*sKI_r[1] );
-//			previousIndex_r = 1;
-//		}else{
-//			RPWM = (int16_t)( rError*sKP_r[2] + accuRightError*sKI_r[2] );
-//			previousIndex_r = 2;
-//		}
+//		accuRightError = accuRightError + rError;
 //	}
-	RPWM = (int16_t)( rError*sKP_r + accuRightError*sKI_r + (rError - preRightError)*sKD_r);
+
+	if(lError<=200){
+		if((accuRightError+rError)>(1000/sKI_r[0])){
+		}else{
+			accuRightError = accuRightError + rError;
+		}
+		RPWM = (int16_t)( rError*sKP_r[0] + accuRightError*sKI_r[0] );
+	}else{
+		if((accuRightError+rError)>(1000/sKI_r[1])){
+		}else{
+			accuRightError = accuRightError + rError;
+		}
+		RPWM = (int16_t)( rError*sKP_r[1] + accuRightError*sKI_r[1] );
+	}
+
+//	RPWM = (int16_t)( rError*sKP_r + accuRightError*sKI_r );
 	preRightError = rError;
 	preTargetRightSpeed = targetRightSpeed;
 	//PID
 
-//	preTargetLeftSpeed = targetLeftSpeed;
-//	preTargetRightSpeed = targetRightSpeed;
+	preTargetLeftSpeed = targetLeftSpeed;
+	preTargetRightSpeed = targetRightSpeed;
 
 	if(targetCarSpeed == 0){
 		motorTo(0, 0);
@@ -1013,18 +1215,18 @@ void car::motorTo(bool id, int16_t PWM)
 	if(id==0){
 		if(PWM>0){
 			motorL.SetPower(PWM);
-			motorL.SetClockwise(false);
+			motorL.SetClockwise(true);
 		}else{
 			motorL.SetPower(-PWM);
-			motorL.SetClockwise(true);
+			motorL.SetClockwise(false);
 		}
 	}else{
 		if(PWM>0){
 			motorR.SetPower(PWM);
-			motorR.SetClockwise(true);
+			motorR.SetClockwise(false);
 		}else{
 			motorR.SetPower(-PWM);
-			motorR.SetClockwise(false);
+			motorR.SetClockwise(true);
 		}
 	}
 
