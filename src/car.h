@@ -176,16 +176,14 @@ private:
 	float angleKP0Right = 10.6;
 	float angleKD0Left = 20;
 	float angleKD0Right = 20;
-	float angleKP1 = 3;
+	float angleKP1 = 0;
+	float angleKD1 = 0;
 
 	int16_t PREANGLE = 0;
 
 	int16_t maxServoAngleForSpeed = 270;
 	int16_t maxServoAngleToLeft = 265;//255 for the smallest circular track and the max error is 23, 24, 25
 	int16_t maxServoAngleToRight = 265;
-	uint8_t straightLineRegionOfCcd0 = 13;
-	uint8_t straightLineRegionOfCcd1 = 5;
-	int32_t straightLineSpeed = 2000;
 	uint8_t noOfSegment[2] = {0, 0};
 	int32_t centre[3] = {64, 64, 64};
 	int32_t preCentre[4] = {64, 64, 64, 64};
@@ -204,6 +202,12 @@ private:
 	bool obstacleLeft = true;
 	int afterObstacleCentreShift =0;
 	int16_t distanceAfterSeeingObstacle = 0;
+
+	int8_t maxErrorForChangingSpeed = 13;
+	const int16_t minSpeed = 830;
+	const int16_t straightLineSpeed = 1000;
+	float a = ( 860 - 1150 ) / ( - ( maxErrorForChangingSpeed * maxErrorForChangingSpeed ) );
+
 	//variable
 
 	Led D1;

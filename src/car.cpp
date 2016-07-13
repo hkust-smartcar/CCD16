@@ -304,8 +304,8 @@ car::car()
 	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
 	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
 //	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
-	pGrapher.addSharedVar(&maxServoAngleToLeft, "maxServoAngleToLeft");
-	pGrapher.addSharedVar(&maxServoAngleToRight, "maxServoAngleToRight");
+	pGrapher.addSharedVar(&angleKP1, "angleKP1");
+	pGrapher.addSharedVar(&angleKD1, "angleKD1");
 	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
 	pGrapher.addSharedVar(&angleKD0Right, "angleKD0Right");
 //	pGrapher.addSharedVar(&straightLineSpeed, "straightLineSpeed");
@@ -831,16 +831,16 @@ void car::dirControl()
 //				if((centre[0]-preCentre[0])>0){
 //					angleError = centreError[0] * angleKP0Left;
 //				}else{
-					angleError = centreError[0] * angleKP0Left + ( centre[0] - preCentre[0] ) * angleKD0Left;
+					angleError = centreError[0] * angleKP0Left + ( centre[0] - preCentre[0] ) * angleKD0Left + centreError[1] *  + ( centre[1] - preCentre[1] ) * angleKD1;
 //				}
 			}else{
 //				if((centre[0]-preCentre[0])<0){
 //					angleError = centreError[0] * angleKP0Left;
 //				}else{
-					angleError = centreError[0] * angleKP0Right + ( centre[0] - preCentre[0] ) * angleKD0Right;
+					angleError = centreError[0] * angleKP0Right + ( centre[0] - preCentre[0] ) * angleKD0Right + centreError[1] * angleKP1 + ( centre[1] - preCentre[1] ) * angleKD1;
 //				}
 			}
-//			changingSpeed();
+			changingSpeed();
 //			if(centreError<0){
 //				if(abs(centreError)<12){
 //					angleError = centreError * 6;
@@ -1125,7 +1125,21 @@ void car::dirControl_1()
 
 void car::changingSpeed()
 {
-
+	a = ( minSpeed - straightLineSpeed ) / ( - ( maxErrorForChangingSpeed * maxErrorForChangingSpeed ) );
+	float error = centreError[1];
+	if(abs(error)>maxErrorForChangingSpeed){
+		error = maxErrorForChangingSpeed;
+	}
+	if(targetCarSpeed==0){
+	}else{
+		targetCarSpeed = - a * error * error + 1000;
+		if(targetCarSpeed>1000){
+			targetCarSpeed = 1000;
+		}
+		if(abs(centreError[0])>49){
+			targetCarSpeed = 860;
+		}
+	}
 }
 
 void car::speedPID()
