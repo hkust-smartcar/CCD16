@@ -1175,12 +1175,18 @@ void car::speedPID()
 			accuLeftError = accuLeftError + lError;
 		}
 		LPWM = (int16_t)( lError*sKP_l[0] + accuLeftError*sKI_l[0] );
-	}else{
+	}else if(lError<=500){
 		if((accuLeftError+lError)>(1000/sKI_l[1])){
 		}else{
 			accuLeftError = accuLeftError + lError;
 		}
 		LPWM = (int16_t)( lError*sKP_l[1] + accuLeftError*sKI_l[1] );
+	}else{
+		if((accuLeftError+lError)>(1000/sKI_l[2])){
+		}else{
+			accuLeftError = accuLeftError + lError;
+		}
+		LPWM = (int16_t)( lError*sKP_l[2] + accuLeftError*sKI_l[2] );
 	}
 
 //	LPWM = (int16_t)( lError*sKP_l + accuLeftError*sKI_l );
@@ -1200,12 +1206,18 @@ void car::speedPID()
 			accuRightError = accuRightError + rError;
 		}
 		RPWM = (int16_t)( rError*sKP_r[0] + accuRightError*sKI_r[0] );
-	}else{
+	}else if(lError<=500){
 		if((accuRightError+rError)>(1000/sKI_r[1])){
 		}else{
 			accuRightError = accuRightError + rError;
 		}
 		RPWM = (int16_t)( rError*sKP_r[1] + accuRightError*sKI_r[1] );
+	}else{
+		if((accuRightError+rError)>(1000/sKI_r[2])){
+		}else{
+			accuRightError = accuRightError + rError;
+		}
+		RPWM = (int16_t)( rError*sKP_r[2] + accuRightError*sKI_r[2] );
 	}
 
 //	RPWM = (int16_t)( rError*sKP_r + accuRightError*sKI_r );
