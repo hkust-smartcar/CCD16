@@ -516,9 +516,11 @@ void car::updateEncoder()
 //	leftCurrent = 2045-lCurrent.GetResult();
 //	rightCurrent = rCurrent.GetResult() - 2045;
 	//enconder update
-
+	if(obstacle){
+		distanceAfterSeeingObstacle += ( currentRightSpeed + currentLeftSpeed ) / 2;
+	}
 	if(afterObstacle){
-		distanceAfterSeeingObstacle += ( currentRightSpeed+currentLeftSpeed ) / 2;
+		distanceAfterNotSeeingObstacle += ( currentRightSpeed + currentLeftSpeed ) / 2;
 	}
 
 	pGrapher.sendWatchData();
@@ -676,6 +678,7 @@ void car::resetToNoObstacle(){
 	obstacle = false;
 	afterObstacle = false;
 	distanceAfterSeeingObstacle = 0;
+	distanceAfterNotSeeingObstacle = 0;
 }
 
 void car::dirControl()
@@ -784,33 +787,43 @@ void car::dirControl()
 			if(noOfSegment[0]>1){
 				for(int i=0;i<noOfSegment[0]-1;i++){
 					if((edge[i+1][0]-edge[i][1])>8 && (edge[i+1][0]-edge[i][1])<15){
-						obstacle=true;
-						if((edge[i][1]-edge[i][0])>(edge[i+1][1]-edge[i+1][0])){
+						if(distanceAfterSeeingObstacle==0){
+							obstacle=true;
+						}
+						if((edge[i][1]-edge[i][0])>(edge[i+1][1]-edge[i+1][0])){//seeing the obstacle and determining which way to go
 							obstacleLeft=false;
-							afterObstacleCentreShift=(edge[i][1]-edge[i][0])/2;
-							minSegment=i;
+							minSegment=i;//make sure going to the correct track
 						}else{
 							obstacleLeft=true;
-							afterObstacleCentreShift=(edge[i+1][1]-edge[i+1][0])/2;
-							minSegment=i+1;
+							minSegment=i+1;//make sure going to the correct track
 						}
 					}else{
-						if(obstacle){
+						if(obstacle&&distanceAfterSeeingObstacle>countsPerM*0.25){
+							afterObstacleCentreShift = (edge[minSegment][1]-edge[minSegment][0])/2;
 							obstacle=false;
 							afterObstacle=true;
 						}
 					}
 				}
 			}else{
-				if(obstacle){
+				if(obstacle&&distanceAfterSeeingObstacle>countsPerM*0.25){
+				afterObstacleCentreShift = (edge[minSegment][1]-edge[minSegment][0])/2;
 					obstacle=false;
 					afterObstacle=true;
 				}
 			}
+			if(obstacle){
+				if(obstacleLeft){
+					centre[0] = centreOfSegment[minSegment]+5;
+				}else{
+					centre[0] = centreOfSegment[minSegment]-5;
+				}
+			}
 			if(afterObstacle){
-				if(distanceAfterSeeingObstacle > countsPerM*0.3){
+				if(distanceAfterNotSeeingObstacle>countsPerM*0.60){
+					distanceAfterSeeingObstacle = 0;
 					afterObstacle=false;
-					distanceAfterSeeingObstacle=0;
+					distanceAfterNotSeeingObstacle=0;
 				}
 			}
 			if(afterObstacle){

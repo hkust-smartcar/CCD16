@@ -202,6 +202,7 @@ private:
 	bool obstacleLeft = true;
 	int afterObstacleCentreShift =0;
 	int16_t distanceAfterSeeingObstacle = 0;
+	int16_t distanceAfterNotSeeingObstacle = 0;
 
 	int8_t maxErrorForChangingSpeed = 13;
 	int16_t minSpeed = 872;
