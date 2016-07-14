@@ -445,7 +445,7 @@ void car::updateCcd()
 		D2.SetEnable(1);
 	}
 	//update 3 ccd
-	if(ccd0Max!=NULL&&ccd0Min!=NULL&&ccd1Max!=NULL&&ccd1Min!=NULL){
+	if(ccd0Max[64]!=0&&ccd0Min[64]!=0&&ccd1Max[64]!=0&&ccd1Min[64]!=0&&ccd2Max[64]!=0&&ccd2Min[64]!=0){
 		if(allBlackConstant==0){
 			allBlackConstant = 230 / 4;
 		}
@@ -456,7 +456,7 @@ void car::updateCcd()
 			}else if(ccdData.at(0).at(i)>ccd0Max[i]){
 				data[i] = 230;
 			}else{
-				data[i] = ( ccdData.at(0).at(i) - ccd0Min[i] ) * ( ccd0MaxMax ) / ( ccd0Max[i] - ccd0Min[i] );
+				data[i] = ( ccdData.at(0).at(i) - ccd0Min[i] ) * 230 / ( ccd0Max[i] - ccd0Min[i] );
 			}
 		}
 		for(int i=0; i<128; i++){
@@ -467,17 +467,32 @@ void car::updateCcd()
 
 
 		for(int i=0; i<128; i++){
-			if(ccdData.at(1).at(i)<ccd0Min[i]){
+			if(ccdData.at(1).at(i)<ccd1Min[i]){
 				data[i] = 0;
-			}else if(ccdData.at(1).at(i)>ccd0Max[i]){
+			}else if(ccdData.at(1).at(i)>ccd1Max[i]){
 				data[i] = 230;
 			}else{
-				data[i] = ( ccdData.at(1).at(i) - ccd1Min[i] ) * ( ccd1MaxMax ) / ( ccd1Max[i] - ccd1Min[i] );
+				data[i] = ( ccdData.at(1).at(i) - ccd1Min[i] ) * 230 / ( ccd1Max[i] - ccd1Min[i] );
 			}
 		}
 		for(int i=0; i<128; i++){
 			if(i!=0||i!=127){
 				ccdData.at(1).at(i) = ( data[i+1] + data[i] + data[i-1]) / 3;
+			}
+		}
+
+		for(int i=0; i<128; i++){
+			if(ccdData.at(2).at(i)<ccd2Min[i]){
+				data[i] = 0;
+			}else if(ccdData.at(2).at(i)>ccd2Max[i]){
+				data[i] = 230;
+			}else{
+				data[i] = ( ccdData.at(2).at(i) - ccd2Min[i] ) * 230 / ( ccd2Max[i] - ccd2Min[i] );
+			}
+		}
+		for(int i=0; i<128; i++){
+			if(i!=0||i!=127){
+				ccdData.at(2).at(i) = ( data[i+1] + data[i] + data[i-1]) / 3;
 			}
 		}
 	}
