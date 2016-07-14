@@ -140,9 +140,9 @@ private:
 //	int16_t RPWM = 0;
 
 	float sKP_l[2] = { 1.7, 1.7 };
-	float sKI_l[2] = { 0.029, 0.02 };
+	float sKI_l[2] = { 0.0245, 0.02 };
 	float sKP_r[2] = { 1.7, 1.7 };
-	float sKI_r[2] = { 0.029, 0.02 }; //for 10ms
+	float sKI_r[2] = { 0.0245, 0.02 }; //for 10ms
 
 	uint8_t brakingTime = 3;
 	uint8_t currentBrakingTime = 1;
@@ -172,10 +172,10 @@ private:
 	uint8_t preTurning = 50;
 	float errorIndex = 1.15;
 	int32_t angleError = 0;
-	float angleKP0Left = 11.2;
-	float angleKP0Right = 11.2;
-	float angleKD0Left = 24;
-	float angleKD0Right = 24;
+	float angleKP0Left = 11.3;
+	float angleKP0Right = 11.3;
+	float angleKD0Left = 26;
+	float angleKD0Right = 26;
 	float angleKP1 = 0;
 	float angleKD1 = 0;
 
@@ -203,10 +203,10 @@ private:
 	int afterObstacleCentreShift =0;
 	int16_t distanceAfterSeeingObstacle = 0;
 
-	int8_t maxErrorForChangingSpeed = 10;
-	const int16_t minSpeed = 830;
-	int16_t straightLineSpeed = 950;
-	float a = ( 860 - 1150 ) / ( - ( maxErrorForChangingSpeed * maxErrorForChangingSpeed ) );
+	int8_t maxErrorForChangingSpeed = 6;
+	int16_t minSpeed = 890;
+	int16_t straightLineSpeed = 1100;
+	float a = ( minSpeed - straightLineSpeed ) / ( - ( maxErrorForChangingSpeed * maxErrorForChangingSpeed ) );
 
 	//variable
 

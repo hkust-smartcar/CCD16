@@ -303,12 +303,12 @@ car::car()
 //	pGrapher.addSharedVar(&sKI_r, "sKI_r");
 	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
 	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
-//	pGrapher.addSharedVar(&maxServoAngleForSpeed, "maxServoAngleForSpeed");
-	pGrapher.addSharedVar(&angleKP1, "angleKP1");
-	pGrapher.addSharedVar(&angleKD1, "angleKD1");
+//	pGrapher.addSharedVar(&angleKP1, "angleKP1");
+//	pGrapher.addSharedVar(&angleKD1, "angleKD1");
 	pGrapher.addSharedVar(&angleKD0Left, "angleKD0Left");
 	pGrapher.addSharedVar(&angleKD0Right, "angleKD0Right");
 	pGrapher.addSharedVar(&maxErrorForChangingSpeed, "maxErrorForChangingSpeed");
+	pGrapher.addSharedVar(&minSpeed, "minSpeed");
 	pGrapher.addSharedVar(&straightLineSpeed, "straightLineSpeed");
 //	pGrapher.addSharedVar(&angleKP1, "angleKP1");
 //	pGrapher.addSharedVar(&currentBrakingTime, "currentBrakingTime");
@@ -708,10 +708,14 @@ void car::dirControl()
 			}
 		}else if(ccdId==1){//other ccd
 			if(maxData<allBlackConstant){// ccd1 being black
-				centre[1] = 0;// will not accelerate
+				if(centre[0]<64){
+					centre[1] = 16;
+				}else{
+					centre[1] = 112;// will not accelerate
+				}
 				break;
 			}else if(minData>allBlackConstant){
-				centre[1] = 0;// will not accelerate
+				centre[1] = 64;// will not accelerate
 				break;
 			}
 		}
@@ -1137,7 +1141,7 @@ void car::changingSpeed()
 			targetCarSpeed = straightLineSpeed;
 		}
 		if(abs(centreError[0])>maxErrorForChangingSpeed){
-			targetCarSpeed = 860;
+			targetCarSpeed = minSpeed;
 		}
 	}
 }
