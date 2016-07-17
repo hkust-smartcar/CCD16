@@ -74,7 +74,7 @@ Button::Config car::getButtonConfig(const uint8_t id)
 //		isKP = !isKP;
 //		allBlackConstant -=2;
 		ccdMaxReady += 1;
-		resetToNoObstacle();
+		resetToNoObstacleAndStopping();
 //		printCcd = !printCcd;
 //		lcd.Clear();
 
@@ -175,7 +175,7 @@ Joystick::Config car::getJoystickConfig(const uint8_t id)
 		};
 		config.handlers[static_cast<int>(Joystick::State::kSelect)] = [&](const uint8_t, const Joystick::State)
 		{
-			resetToNoObstacle();
+			resetToNoObstacleAndStopping();
 		};
 	}else{
 		config.handlers[static_cast<int>(Joystick::State::kUp)] = [&](const uint8_t, const Joystick::State)
@@ -285,11 +285,15 @@ car::car()
 	pGrapher.addWatchedVar(&currentRightSpeed, "currentRightSpeed");
 	pGrapher.addWatchedVar(&targetLeftSpeed, "targetLeftSpeed");
 	pGrapher.addWatchedVar(&targetRightSpeed, "targetRightSpeed");
-//	pGrapher.addWatchedVar(&LPWM, "LPWM");
-//	pGrapher.addWatchedVar(&RPWM, "RPWM");
+//	pGrapher.addWatchedVar(&blackSegmentCentreForStopping[0], "blackSegmentCentreForStopping[0]");
+//	pGrapher.addWatchedVar(&blackSegmentCentreForStopping[1], "blackSegmentCentreForStopping[1]");
+//	pGrapher.addWatchedVar(&stoppingCounter, "stoppingCounter");
+//	pGrapher.addWatchedVar(&stoppingCounter, "stoppingCounter");
 //	pGrapher.addWatchedVar(&centreError[0], "centreError[0]");
-	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
-//	pGrapher.addWatchedVar(&max[1], "max[1]");
+//	pGrapher.addWatchedVar(&centreError[1], "centreError[1]");
+	pGrapher.addWatchedVar(&max[0], "max[0]");
+	pGrapher.addWatchedVar(&max[1], "max[1]");
+	pGrapher.addWatchedVar(&max[2], "max[2]");
 //	pGrapher.addWatchedVar(&angleError, "angleError");
 
 //	pGrapher.addWatchedVar(&max[1], "max[1]");
@@ -301,6 +305,7 @@ car::car()
 //	pGrapher.addSharedVar(&sKI_l, "sKI_l");
 //	pGrapher.addSharedVar(&sKP_r, "sKP_r");
 //	pGrapher.addSharedVar(&sKI_r, "sKI_r");
+	pGrapher.addSharedVar(&targetCarSpeed, "targetCarSpeed");
 	pGrapher.addSharedVar(&angleKP0Left, "angleKP0Left");
 	pGrapher.addSharedVar(&angleKP0Right, "angleKP0Right");
 //	pGrapher.addSharedVar(&angleKP1, "angleKP1");
@@ -410,6 +415,11 @@ void car::updateCcd()
 			D2.SetEnable(0);
 		}else{
 			D2.SetEnable(1);
+		}
+		if(stopTheCar){
+			D4.SetEnable(0);
+		}else{
+			D4.SetEnable(1);
 		}
 	}
 		//D1 first blinking indicates max recorded, D1 then not blinking indicates min recorded.
@@ -613,9 +623,9 @@ void car::printCcdData()
 
 		lcd.SetRegion(Lcd::Rect(centre[printCcd], 80, 1, 80));
 		lcd.FillColor(0xF800);
-		lcd.SetRegion(Lcd::Rect(0, (79 - 79 * threshold[printCcd] / 255) + 80, 128, 1));
+		lcd.SetRegion(Lcd::Rect(0, (79 - 79 * 115 / 255) + 80, 128, 1));
 		lcd.FillColor(0xFFE0);
-		lcd.SetRegion(Lcd::Rect(0, (79 - 79 * allBlackConstant / 255) + 80, 128, 1));
+		lcd.SetRegion(Lcd::Rect(0, (79 - 79 * 58 / 255) + 80, 128, 1));
 		lcd.FillColor(0x07FF);
 		lcd.SetRegion(Lcd::Rect(trackCentre, 50, 1, 30));
 		lcd.FillColor(0x001F);
@@ -655,7 +665,7 @@ void car::eraceCcdData()
 //		lcd.FillColor(0);
 		lcd.SetRegion(Lcd::Rect(centre[printCcd], 80, 1, 80));
 		lcd.FillColor(0);
-		lcd.SetRegion(Lcd::Rect(0, (79 - 79 * threshold[printCcd] / 255) + 80, 128, 1));
+		lcd.SetRegion(Lcd::Rect(0, (79 - 79 * 115 / 255) + 80, 128, 1));
 		lcd.FillColor(0);
 //		lcd.SetRegion(Lcd::Rect(centre[1], 80, 1, 80));
 //		lcd.FillColor(0);
@@ -670,7 +680,7 @@ void car::print()
 //	console.WriteString(message);
 
 	char message[128];
-	sprintf(message,"\n%f\n%d\n%d\n\n\n\n\n\n\n", errorIndex, centreError[0], angleError);
+	sprintf(message,"%d\n\n\n\n\n\n\n\n\n\n", blackSegmentsDistance);
 	console.WriteString(message);
 
 //	char message[128];
@@ -689,11 +699,13 @@ void car::servoTo(int16_t degree)
 	servo.SetDegree(884 - angleError);
 }
 
-void car::resetToNoObstacle(){
+void car::resetToNoObstacleAndStopping(){
 	obstacle = false;
 	afterObstacle = false;
 	distanceAfterSeeingObstacle = 0;
 	distanceAfterNotSeeingObstacle = 0;
+	stopTheCar = false;
+	stoppingCounter = theLongestTimeBetweenBlackSegments + 1;
 }
 
 void car::dirControl()
@@ -725,20 +737,24 @@ void car::dirControl()
 				continue;
 			}
 		}else if(ccdId==1){//other ccd
-			if(maxData<allBlackConstant){// ccd1 being black
+			if(maxData<=allBlackConstant){// ccd1 being black
 				if(centre[0]<64){
 					centre[1] = 16;
 				}else{
 					centre[1] = 112;// will not accelerate
 				}
 				break;
-			}else if(minData>allBlackConstant){
-				centre[1] = 64;// will not accelerate
+			}else if(minData>allBlackConstant){//ccd1 seeing all white
+				centre[1] = 64;
 				break;
 			}
 		}
 
-		threshold[ccdId] = ( maxData + minData ) / 2;
+		if(ccdId==2){
+			threshold[2] = maxData / 1.7;
+		}else{
+			threshold[ccdId] = ( maxData + minData ) / 2;
+		}
 		//find threshold
 
 		bool prePixelIsHigh = false;
@@ -848,6 +864,37 @@ void car::dirControl()
 					centre[0] = edge[minSegment][0] + afterObstacleCentreShift;
 				}
 			}
+		}else if(ccdId==2){
+			if(stopTheCar){
+				break;
+			}
+			if(noOfSegment[2]==2){
+				if(blackSegmentCentreForStopping[0]==0){
+					blackSegmentCentreForStopping[0] = ( edge[0][1] + edge[1][0] ) / 2;
+					stoppingCounter = 1;
+				}else{
+					blackSegmentCentreForStopping[1] = ( edge[0][1] + edge[1][0] ) / 2;
+					blackSegmentsDistance = blackSegmentCentreForStopping[0]-blackSegmentCentreForStopping[1];
+					if((blackSegmentCentreForStopping[0]-blackSegmentCentreForStopping[1])>minBlackSegmentsDistance&&stoppingCounter<theLongestTimeBetweenBlackSegments){
+						stopTheCar = true;//checked the stopping conditions
+						break;
+					}
+				}
+			}else if(noOfSegment[2]==3){
+				if((((edge[1][1]+edge[2][0])/2)-((edge[0][1]+edge[1][0])/2))>27){//find the magic number
+					stopTheCar = true;//checked the stopping conditions
+					break;
+				}
+			}
+			if(stoppingCounter>=theLongestTimeBetweenBlackSegments){
+				stopTheCar = false;
+				stoppingCounter = 0;//reset the stopping mechanism
+				blackSegmentsDistance = 0;
+				blackSegmentCentreForStopping[0] = 0;
+				blackSegmentCentreForStopping[1] = 0;
+			}else if(stoppingCounter>0&&stoppingCounter<theLongestTimeBetweenBlackSegments){
+				stoppingCounter++;
+			}
 		}
 
 
@@ -873,68 +920,7 @@ void car::dirControl()
 //				}
 			}
 			changingSpeed();
-//			if(centreError<0){
-//				if(abs(centreError)<12){
-//					angleError = centreError * 6;
-//				}else if(abs(centreError)<20){
-//					angleError = centreError * 6;
-//				}else if(abs(centreError)<25){
-//					angleError = centreError * 6;
-//				}else{
-//					angleError = centreError * 6;
-//				}
-//			}else{
-//				if(abs(centreError)<12){
-//					angleError = centreError * 6.3;
-//				}else if(abs(centreError)<20){
-//					angleError = centreError * 6.3;
-//				}else if(abs(centreError)<25){
-//					angleError = centreError * 6.3;
-//				}else{
-//					angleError = centreError * 6.3;
-//				}
-//			}
 
-
-//			}else if(abs(centreError)<18){
-//				angleError = centreError * 5;
-//			}else if(abs(centreError)<24){
-//				angleError = centreError * 5.8;
-//			}else{
-//				angleError = centreError * 8;
-//			}
-//			int8_t sign = ( centre[0] - trackCentre ) / abs( centre[0] - trackCentre );
-//			break;
-//		case 1:
-//			straightLine:
-//			centreError = ( centre[1] - trackCentre );
-//			angleError = centreError * angleKP1 + ( preCentre[1] - 64 ) * angleKD1;
-//			break;
-//	}
-
-
-//	if(abs(centre[0]-trackCentre)<=10){
-//		wheelRatio = 1;
-//		angleError = ( centre[1] - trackCentre ) * angleKP;
-//	}else if(sign<0){
-//		wheelRatio = - twoWheelsRatio[trackCentre - centre[0] - 1];
-//		angleError = - turningLeft_errorToServo[trackCentre - centre[0] - 1];
-//	}else{
-//		wheelRatio = twoWheelsRatio[centre[0] - trackCentre - 1];
-//		angleError = turningRight_errorToServo[centre[0] - trackCentre - 1];
-//	}
-	//old one
-
-//	wheelRatio = sign*(  pow( ( abs( centre[0] - trackCentre ) / noTurnRegion ) ,errorIndex ) * noTurnRegion * angleKP  ) +
-//				 ( centre[0] - preCentre[0]  ) * angleKD;
-
-//	if(wheelRatio<0){
-//		wheelRatio -= 1;
-//	}else{
-//		wheelRatio += 1;
-//	}
-
-//	differentialNEW();
 	servoTo(angleError);
 	//set servo angle and limit it
 
@@ -962,198 +948,11 @@ void car::dirControl()
 	}
 }
 
-//void car::differential()
-//{
-//	if(angleError>540){
-//		angleError = 540;
-//	}else if(angleError<-540){
-//		angleError = -540;
-//	}
-//	uint8_t speedIndex = abs(angleError/3) + preTurning;
-//	if(angleError>0){
-//		if(speedIndex>182){
-//			targetLeftSpeed = targetCarSpeed * outerSpeed[182] / 100000;
-//			targetRightSpeed = targetCarSpeed * innerSpeed[182] / 100000;
-//		}else{
-//		targetLeftSpeed = targetCarSpeed * outerSpeed[speedIndex] / 100000;
-//		targetRightSpeed = targetCarSpeed * innerSpeed[speedIndex] / 100000;
-//		}
-//	}else if(angleError<0){
-//		if(speedIndex>182){
-//			targetRightSpeed = targetCarSpeed * outerSpeed[182] / 100000;
-//			targetLeftSpeed = targetCarSpeed * innerSpeed[182] / 100000;
-//		}else{
-//			targetRightSpeed = targetCarSpeed * outerSpeed[speedIndex] / 100000;
-//			targetLeftSpeed = targetCarSpeed * innerSpeed[speedIndex] / 100000;
-//		}
-//	}else{
-//		targetLeftSpeed = targetCarSpeed;
-//		targetRightSpeed = targetCarSpeed;
-//	}
-//}
-
-//void car::differentialNEW()
-//{
-//	if(wheelRatio>-1.005 && wheelRatio<1.005){
-//		angleError = 0;
-//	}else if(wheelRatio<-1){
-//		angleError = - ( int16_t ) ( ( - wheelRatio - 0.8965 ) / 0.0022 );
-//	}else{
-//		angleError = ( int16_t ) ( ( wheelRatio - 0.9531 ) / 0.002 );
-//	}
-//}
-
 //void car::printCentre(const uint16_t color)
 //{
 //	lcd.SetRegion(Lcd::Rect(centre, 128, 1, 32));
 //	lcd.FillColor(color);
 //}
-
-//void car::setMotorPower()
-//{
-//	bool forward = true;
-//	if(output==0){
-//		motorL.SetPower(0);
-//	}else if(output>0||output<=1000){
-//		motorL.SetPower(output);
-//		forward = true;
-//		motorL.SetClockwise(!forward);
-//
-//	}else if(output>1000){
-//		motorL.SetPower(1000);
-//		forward = true;
-//		motorL.SetClockwise(!forward);
-//
-//	}else if(output<0||output>=(-1000)){
-//		motorL.SetPower(-output);
-//		forward = false;
-//		motorL.SetClockwise(!forward);
-//
-//	}else if(output<(-1000)){
-//		motorL.SetPower(1000);
-//		forward = false;
-//		motorL.SetClockwise(!forward);
-//
-//	}
-//}
-
-void car::dirControl_1()
-{
-	int r0=112,r1=112,l0=16,l1=16;
-	for(ccdId=0; ccdId<2; ccdId++){
-		int16_t maxData = 0;
-		int16_t minData = 255;
-		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){//find max and min
-			if(ccdData.at(ccdId).at(j)>maxData){
-				maxData = ccdData.at(ccdId).at(j);
-			}
-			if(ccdData.at(ccdId).at(j)<minData){
-				minData = ccdData.at(ccdId).at(j);
-			}
-		}
-
-		max[ccdId] = maxData;
-
-		if(ccdId==0){
-			if(maxData<=allBlackConstant){//ccd0 seeing nothing, then refer back to previous centre and turn to the most
-				if(centre[0]>64){
-					centre[0] = 127;
-				}else{
-					centre[0] = 0;
-				}
-				continue;//keep update ccd1 or you can use break
-			}else if(minData>allBlackConstant){//ccd0 seeing all white
-				centre[0] = 64;
-				continue;
-			}
-		}else if(ccdId==1){//other ccd
-			if(maxData<allBlackConstant){// ccd1 being black
-				centre[1] = 0;// will not accelerate
-				break;
-			}else if(minData>allBlackConstant){
-				centre[1] = 0;// will not accelerate
-				break;
-			}
-		}
-
-		threshold[ccdId] = ( maxData + minData ) / 2;
-		//find threshold
-
-		bool prePixelIsHigh = false;
-		noOfSegment[ccdId] = 0;
-		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){
-			if(ccdData.at(ccdId).at(j)>=threshold[ccdId]){
-				if(prePixelIsHigh == false){//from black to white
-					noOfSegment[ccdId]++;
-				}
-				prePixelIsHigh = true;
-			}else{
-				prePixelIsHigh = false;
-			}
-		}
-		//find no. of white segment
-
-		prePixelIsHigh = false;//assume black first
-		uint16_t edge[noOfSegment[ccdId]][2];
-		uint8_t distance[noOfSegment[ccdId]];
-		uint16_t segmentCentre[noOfSegment[ccdId]];
-		uint8_t indexOfSegment = 0;//index of first segment
-		for(int j=ccdLength[ccdId][0]; j<ccdLength[ccdId][1]; j++){
-			if(ccdData.at(ccdId).at(j)>=threshold[ccdId]){
-				if(prePixelIsHigh == false){// from black to white edge
-					edge[indexOfSegment][0] = j;//starting edge
-				}
-				prePixelIsHigh = true;
-				if(j==(ccdLength[ccdId][1]-1)){//last pixel in each ccd
-					edge[indexOfSegment][1] = (ccdLength[ccdId][1]-1);
-				}
-			}else{
-				if(prePixelIsHigh == true){
-					edge[indexOfSegment][1] = --j;//ending edge which is the previous index
-					indexOfSegment++;//go to next segment
-				}
-				prePixelIsHigh = false;
-			}
-		}
-		for(int i=0; i<noOfSegment[ccdId]; i++){//centre of each segment
-			segmentCentre[i] = ( edge[i][0] + edge[i][1] ) / 2;
-		}
-		for(int i=0; i<noOfSegment[ccdId]; i++){//distance between centres and preCentre
-			distance[i] = abs((preCentre[ccdId]-segmentCentre[i]));
-		}
-		int minSegment = 0;
-		for(int i=0; i<noOfSegment[ccdId]; i++){//find the one that is the closest to 64
-			if(distance[i]<=distance[minSegment]){
-				minSegment = i;
-			}
-			if(ccdId==0){
-			l0=edge[minSegment][0];
-			r0=edge[minSegment][1];
-			}
-			else if(ccdId==1){
-				l1=edge[minSegment][0];
-				r1=edge[minSegment][1];
-
-			}
-		}
-
-
-		if(abs(preCentre[ccdId]-segmentCentre[minSegment])>(ccdLength[ccdId][1]-ccdLength[ccdId][0])*5/9){// missed the track and saw the other track
-			//***use the previous centre***
-		}else{
-			centre[ccdId] = segmentCentre[minSegment];
-		}
-	}
-	angleError=
-			data_process(l1, r1,
-						 l0, r0, 16,
-						112, 16, 112, PREANGLE,
-						-500, 500, 3, 9.6, 9.6,
-						3, 10.4, 10.4,
-						ccdData[0]);
-	servoTo(angleError);
-	PREANGLE = angleError;
-}
 
 void car::changingSpeed()
 {
@@ -1162,7 +961,8 @@ void car::changingSpeed()
 	if(abs(error)>maxErrorForChangingSpeed){
 		error = maxErrorForChangingSpeed;
 	}
-	if(targetCarSpeed==0){
+	if(targetCarSpeed==0||stopTheCar){
+		targetCarSpeed = 0;
 	}else{
 		targetCarSpeed = - a * error * error + straightLineSpeed;
 		if(targetCarSpeed>straightLineSpeed){
@@ -1256,15 +1056,13 @@ void car::speedPID()
 	preTargetLeftSpeed = targetLeftSpeed;
 	preTargetRightSpeed = targetRightSpeed;
 
-	if(targetCarSpeed == 0){
-		motorTo(0, 0);
-		motorTo(1, 0);
+
+	if(targetCarSpeed==0){
 		accuLeftError = 0;
 		accuRightError = 0;
-	}else{
-		motorTo(0, LPWM);
-		motorTo(1, RPWM);
 	}
+	motorTo(0, LPWM);
+	motorTo(1, RPWM);
 	//set PWM
 }
 

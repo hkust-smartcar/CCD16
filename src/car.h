@@ -52,7 +52,7 @@ public:
 	void dirControl_1();
 	void speedPID();
 	void torquePI();
-	void resetToNoObstacle();
+	void resetToNoObstacleAndStopping();
 	void servoTo(int16_t degree); //Left=-546, M=0, Right=+546
 	void motorTo(bool id, int16_t PWM);
 	void differential();
@@ -68,7 +68,7 @@ private:
 
 	//degree:36.2, 48.5, 58.9, 67.1
 	//length:508, 534, 584, 651
-	const int16_t ccdLength[3][2] = { {16, 113}, {16, 113}, {0, 128} };
+	const int16_t ccdLength[3][2] = { {16, 113}, {16, 113}, {16, 113} };
 	int8_t ccdMaxReady = 0;
 	int8_t ccdMinReady = 0;
 	int8_t thirdCcdMaxReady = 0;
@@ -90,7 +90,7 @@ private:
 	int32_t accuLCount = 0;
 	int32_t accuRCount = 0;
 	int16_t max[3];
-	uint8_t printCcd = 0;
+	uint8_t printCcd = 2;
 	int8_t centreError[2] = { NULL };
 	uint16_t allBlackConstant = 0;
 
@@ -202,6 +202,13 @@ private:
 	int16_t minSpeed = 872;
 	int16_t straightLineSpeed = 1060;
 	float a = ( minSpeed - straightLineSpeed ) / ( - ( maxErrorForChangingSpeed * maxErrorForChangingSpeed ) );
+
+	int8_t blackSegmentCentreForStopping[2]= { NULL };
+	uint32_t stoppingCounter = 0;
+	uint32_t theLongestTimeBetweenBlackSegments = 20;
+	const int8_t minBlackSegmentsDistance = 40;//to 45
+	int8_t blackSegmentsDistance = 0;
+	bool stopTheCar = false;
 
 	//variable
 

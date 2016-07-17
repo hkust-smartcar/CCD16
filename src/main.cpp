@@ -55,7 +55,7 @@ int main(void)
 //	bool twiceLoopCounter = false;
 	uint32_t previousTime = System::Time();
 	while (true){
-		if((System::Time()-previousTime)==10){
+		if((System::Time()-previousTime)==20){
 			previousTime = System::Time();
 //			car.printSpeed();
 //			car.eraceCcdData();
